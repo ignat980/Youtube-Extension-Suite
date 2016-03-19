@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Playlist Length",
+  "version": "0.0.1",
+
+  "description": "This extesnion will list the length of time it takes to watch an entire youtube playlist",
+  "icons": { "16": "images/Icon16.png",
+           "48": "images/Icon48.png",
+          "128": "images/Icon128.png" },
+
+  "author": "Ignat Remizov",
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/watch*&list*", "*://*.youtube.com/playlist*"],
+       "js": ["js/main.js"]
+    }
+  ],
+
+  "permissions": [
+    "tabs"
+  ]
+}
