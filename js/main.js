@@ -1,6 +1,8 @@
 // Copyright (c) 2016 Ignat Remizov. All rights reserved.
 
 /**
+ * Calls the Youtube API to read the length of the current playlist
+ *
  * {function(string)} callback - called when the length of a Youtube Playlist is found
  */
 function getPlaylistLength(callback) {
@@ -65,12 +67,39 @@ function getCurrentTabUrl(callback) {
 // }
 
 /**
+ * Read a local json text file.
+ *
+ * @param {string} file - The filepath to the json resourse
+ * @param {function(string)} callback - called when the json file has been read.
+ * @source - http://stackoverflow.com/a/34579496/3923022
+ */
+
+function readTextFile(file, callback) {
+    var rawFile = new XMLHttpRequest();
+    rawFile.overrideMimeType("application/json");
+    rawFile.open("GET", file, true);
+    rawFile.onreadystatechange = function() {
+        if (rawFile.readyState === 4 && rawFile.status == "200") {
+            callback(rawFile.responseText);
+        }
+    }
+    rawFile.send(null);
+}
+
+
+/**
+ * Adds a playlist length to the DOM
+ *
  * @param {string} length - The length of the playlist
  */
 
 function renderLength(length) {
-  var lengthLi = document.createElement('li');
-  lengthLi.appendChild(document.createTextNode("Total time: " + length));
+  var lengthLi = document.getElementById('pl-detail-length')
+  if (lengthLi === null) {
+    lengthLi = document.createElement('li');
+    lengthLi.setAttribute('id','pl-detail-length');
+  }
+  lengthLi.innerText = "Total time: " + length;
   var playlistDetails = document.getElementsByClassName('pl-header-details') //youtube.com/playlist
   if (playlistDetails.length === 0) {
     playlistDetails = document.getElementsByClassName('playlist-details') //youtube.com/watch*&list*
@@ -78,10 +107,13 @@ function renderLength(length) {
   console.assert(playlistDetails.length !== 0, 'Playlist not found in DOM');
   playlistDetails[0].appendChild(lengthLi);
 }
-
-getPlaylistLength(function (length) {
-  console.log("Calculated length:" + length)
-  renderLength(length)
+var keysURL = chrome.extension.getURL("keys.json");
+readTextFile(keysURL, function(json){
+  var data = JSON.parse(json);
+  console.log(data);
+  getPlaylistLength(function (length) {
+    console.log("Calculated length:" + length)
+    renderLength(length)
+  });
 });
-
 console.log("Script ran");

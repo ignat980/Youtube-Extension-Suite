@@ -19,5 +19,8 @@
 
   "permissions": [
     "tabs"
+  ],
+  "web_accessible_resources": [
+    "keys.json"
   ]
 }
