@@ -7,8 +7,17 @@
  */
 function getPlaylistLength(callback) {
   // TODO: Youtube api to get playlist length
+  console.log("Getting playlist length");
+  var data = ["P1DT32H10M33S", "PT2M01S"];
+  var parsed = moment.duration(data[0]);
+  var parsed2 = moment.duration(data[1]);
+  console.log("Parsed 1: " + parsed + "; Parsed 2: " + parsed2);
+  parsed.add(parsed2)
+  console.log("Length.format(): " + parsed.format());
+  console.log("Length.toISOString(): " + parsed.toISOString());
+  console.log("Length.toString(): " + parsed.toString());
   callback("12:34");
-}
+};
 
 /**
  * Get the current URL.
@@ -22,7 +31,7 @@ function getCurrentTabUrl(callback) {
     console.assert(typeof url == 'string', 'tab.url should be a string');
     callback(url);
   });
-}
+};
 
 /**
  * @param {string} searchTerm - Search term for Google Image search.
@@ -81,12 +90,79 @@ function readTextFile(file, callback) {
     rawFile.onreadystatechange = function() {
         if (rawFile.readyState === 4 && rawFile.status == "200") {
             callback(rawFile.responseText);
-        }
-    }
+        };
+    };
     rawFile.send(null);
-}
+};
 
+var iso8601DurationRegex = /(-)?P(?:([\.,\d]+)Y)?(?:([\.,\d]+)M)?(?:([\.,\d]+)W)?(?:([\.,\d]+)D)?T(?:([\.,\d]+)H)?(?:([\.,\d]+)M)?(?:([\.,\d]+)S)?/;
 
+function parseISO8601Duration(iso8601Duration) {
+  var matches = iso8601Duration.match(iso8601DurationRegex);
+
+  var duration = {
+    sign: matches[1] === undefined ? '+' : '-',
+    years: matches[2] === undefined ? 0 : matches[2],
+    months: matches[3] === undefined ? 0 : matches[3],
+    weeks: matches[4] === undefined ? 0 : matches[4],
+    days: matches[5] === undefined ? 0 : matches[5],
+    hours: matches[6] === undefined ? 0 : matches[6],
+    minutes: matches[7] === undefined ? 0 : matches[7],
+    seconds: matches[8] === undefined ? 0 : matches[8]
+  };
+  return fixISO8601DurationOverflow(duration);
+};
+
+function fixISO8601DurationOverflow(duration) {
+
+  while (duration["seconds"] >= 60) {
+    duration["minutes"] += 1;
+    duration["seconds"] -= 60;
+  };
+  while (duration["minutes"] >= 60) {
+    duration["hours"] += 1;
+    duration["minutes"] -= 60;
+  };
+  while (duration["hours"] >= 24) {
+    duration["days"] += 1;
+    duration["hours"] -= 24;
+  };
+  if (duration["weeks"]) {
+    console.error("Week duration overflow in ISO 8601 formats not implemented");
+  };
+  var daysinmonth = daysInMonth(2016, new Date().getMonth() + duration["months"]);
+  while (duration["days"] >= daysinmonth) {
+    duration["months"] += 1;
+    duration["days"] -= daysinmonth;
+    daysinmonth = daysInMonth(2016, new Date().getMonth() + duration["months"]);
+  };
+
+  while (duration["months"] >= 12) {
+    duration["years"] += 1;
+    duration["months"] -= 12;
+  };
+
+  return duration;
+};
+
+function addParsedISO8601Durations(left, right) {
+  var add = {
+    sign: '+',
+    years: left["years"] + right["years"],
+    months: left["months"] + right["months"],
+    weeks: 0, // It is unecessary to add weeks, since days + months define the weeks. I think.
+    days: left["days"] + right["days"],
+    hours: left["hours"] + right["hours"],
+    minutes: left["minutes"] + right["minutes"],
+    seconds: left["seconds"] + right["seconds"]
+  };
+
+  return fixISO8601DurationOverflow(add);
+};
+
+function daysInMonth(year, month) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+};
 /**
  * Adds a playlist length to the DOM
  *
@@ -98,22 +174,24 @@ function renderLength(length) {
   if (lengthLi === null) {
     lengthLi = document.createElement('li');
     lengthLi.setAttribute('id','pl-detail-length');
-  }
+  };
   lengthLi.innerText = "Total time: " + length;
-  var playlistDetails = document.getElementsByClassName('pl-header-details') //youtube.com/playlist
+  var playlistDetails = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
   if (playlistDetails.length === 0) {
-    playlistDetails = document.getElementsByClassName('playlist-details') //youtube.com/watch*&list*
-  }
+    playlistDetails = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+  };
   console.assert(playlistDetails.length !== 0, 'Playlist not found in DOM');
   playlistDetails[0].appendChild(lengthLi);
-}
+};
+
+
 var keysURL = chrome.extension.getURL("keys.json");
-readTextFile(keysURL, function(json){
+readTextFile(keysURL, function(json) {
   var data = JSON.parse(json);
   console.log(data);
   getPlaylistLength(function (length) {
-    console.log("Calculated length:" + length)
-    renderLength(length)
+    console.log("Calculated length:" + length);
+    renderLength(length);
   });
 });
 console.log("Script ran");
