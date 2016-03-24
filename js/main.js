@@ -1,37 +1,48 @@
 // Copyright (c) 2016 Ignat Remizov. All rights reserved.
-
+;(function(root, undefined) {
 /**
  * Calls the Youtube API to read the length of the current playlist
  *
- * {function(string)} callback - called when the length of a Youtube Playlist is found
+ * @param {string} format_string - used by duration.format to format the length
+ * @param {function(string)} callback - called when the length of a Youtube Playlist is found
  */
-function getPlaylistLength(callback) {
+function getPlaylistLength(format_string, callback) {
   // TODO: Youtube api to get playlist length
   console.log("Getting playlist length");
-  var data = ["P1DT32H10M33S", "PT2M01S"];
-  var parsed = moment.duration(data[0]);
-  var parsed2 = moment.duration(data[1]);
-  console.log("Parsed 1: " + parsed + "; Parsed 2: " + parsed2);
-  parsed.add(parsed2)
-  console.log("Length.format(): " + parsed.format());
-  console.log("Length.toISOString(): " + parsed.toISOString());
-  console.log("Length.toString(): " + parsed.toString());
-  callback("12:34");
+  var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
+  var length = data.reduce(function(previous, current) {
+    var dur = moment.duration(previous);
+    dur.add(moment.duration(current));
+    return dur;
+  });
+  callback(formatDuration(length, format_string));
 };
 
 /**
- * Get the current URL.
+ * Formats a moment duration from milliseconds into a readable format
  *
- * @param {function(string)} callback - called when the URL of the current tab
- *   is found.
+ * @param {Duration} duration - a duration that will be used to formatDuration
+ * @param {string} format_string - the string that will be used by .format() or you can use the two default values
  */
-function getCurrentTabUrl(callback) {
-  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-    var url = tabs[0].url;
-    console.assert(typeof url == 'string', 'tab.url should be a string');
-    callback(url);
-  });
-};
+function formatDuration(duration, format_string) {
+  var length;
+  if (format_string === "long") {
+    format = [
+      duration.months() === 1 ? "Month" : "Months",
+      duration.days() === 1 ? "Day" : "Days",
+      duration.hours() === 1 ? "Hour" : "Hours",
+      duration.minutes() === 1 ? "Minute" : "Minutes",
+      duration.seconds() === 1 ? "Second" : "Seconds"
+    ];
+    length = duration.format("M [" + format[0] + "] d [" + format[1] +
+    "] h [" + format[2] + "] m [" + format[3] + " and] s [" + format[4] + "]");
+  } else if (format_string === "short") {
+    length = duration.format("M[m] d[d] h:mm:ss");
+  } else {
+    length = duration.format(format_string);
+  };
+  return length;
+}
 
 /**
  * @param {string} searchTerm - Search term for Google Image search.
@@ -160,9 +171,16 @@ function addParsedISO8601Durations(left, right) {
   return fixISO8601DurationOverflow(add);
 };
 
+/**
+ * Gives the number of days in a particular month
+ *
+ * @param {int} year - The year the month is in
+ * @param {int} month - The specific month you want the days in
+ */
 function daysInMonth(year, month) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 };
+
 /**
  * Adds a playlist length to the DOM
  *
@@ -189,9 +207,11 @@ var keysURL = chrome.extension.getURL("keys.json");
 readTextFile(keysURL, function(json) {
   var data = JSON.parse(json);
   console.log(data);
-  getPlaylistLength(function (length) {
+  var url = document.location
+  getPlaylistLength(document.location.pathname === "/playlist" ? "long" : "short", function (length) {
     console.log("Calculated length:" + length);
     renderLength(length);
   });
 });
 console.log("Script ran");
+})(this)
