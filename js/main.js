@@ -3,20 +3,21 @@
 /**
  * Calls the Youtube API to read the length of the current playlist
  *
- * @param {string} format_string - used by duration.format to format the length
+ * @param {string} playlistID - The ID for the playlist to get
+ * @param {string} key - The Youtube data v3 api key
  * @param {function(string)} callback - called when the length of a Youtube Playlist is found
  */
-function getPlaylistLength(format_string, callback) {
+function getPlaylistLength(playlist_ID, key, callback) {
   // TODO: Youtube api to get playlist length
   console.log("Getting playlist length");
   var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-  var apiUrl = "https://www.googleapis.com/youtube/v3/playlists"
+  var api_url = "https://www.googleapis.com/youtube/v3/playlists" + "?part=snippet" + "&id=" + playlist_ID + "&fields=items(contentDetails%2Csnippet)%2CnextPageToken%2CpageInfo&key=" + key;
   var length = data.reduce(function(previous, current) {
-    var dur = moment.duration(previous);
+    var duration = moment.duration(previous);
     dur.add(moment.duration(current));
-    return dur;
+    return duration;
   });
-  callback(formatDuration(length, format_string));
+  callback(length);
 };
 
 /**
@@ -52,17 +53,19 @@ function formatDuration(duration, format_string) {
  */
 
 function asyncJsonGET(url, callback, errorCallback) {
-  var xmlHttp = new XMLHttpRequest();
-  xmlHttp.open("GET", url);
-  xmlHttp.responseType = 'json'
+  var xml_http = new XMLHttpRequest();
+  xml_http.open("GET", url);
+  xml_http.responseType = 'json';
   x.onload = function() {
-    if (!x.response) {
-      errorCallback("No response.")
+    if (x.status === 400 || x.status === 404) {
+      errorCallback(x.status);
+    } else if (!x.response) {
+      errorCallback("No response.");
     } else if (x.response.error) {
-      errorCallback(x.response.error)
+      errorCallback(x.response.error);
     } else {
       callback(x.response);
-    }
+    };
   };
   x.onerror = function() {
     errorCallback('Network error.');
@@ -79,47 +82,49 @@ function asyncJsonGET(url, callback, errorCallback) {
  */
 
 function readTextFile(file, callback) {
-    var rawFile = new XMLHttpRequest();
-    rawFile.overrideMimeType("application/json");
-    rawFile.open("GET", file, true);
-    rawFile.onreadystatechange = function() {
-        if (rawFile.readyState === 4 && rawFile.status == "200") {
-            callback(rawFile.responseText);
-        };
-    };
-    rawFile.send(null);
+  var raw_file = new XMLHttpRequest();
+  rawFile.overrideMimeType("application/json");
+  rawFile.open("GET", file, true);
+  rawFile.onreadystatechange = function() {
+      if (rawFile.readyState === 4 && rawFile.status == "200") {
+          callback(rawFile.responseText);
+      };
+  };
+  rawFile.send(null);
 };
 
 
 /**
  * Adds a playlist length to the DOM
  *
- * @param {string} length - The length of the playlist
+ * @param {string} format_string - used by duration.format to format the length
+ * @param {string} unformatted_length - The length of the playlist in ISO 8601 format
  */
-function renderLengthInDOM(length) {
-  var lengthLi = document.getElementById('pl-detail-length')
-  if (lengthLi === null) {
-    lengthLi = document.createElement('li');
-    lengthLi.setAttribute('id','pl-detail-length');
+function renderLengthInDOM(format_string, unformatted_length) {
+  var length = formatDuration(unformatted_length, format_string)
+  var length_li = document.getElementById('pl-detail-length');
+  if (length_li === null) {
+    length_li = document.createElement('li');
+    length_li.setAttribute('id','pl-detail-length');
   };
-  lengthLi.innerText = "Total time: " + length;
-  var playlistDetails = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
-  if (playlistDetails.length === 0) {
-    playlistDetails = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+  length_li.innerText = "Total time: " + length;
+  var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
+  if (playlist_details.length === 0) {
+    playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
   };
-  console.assert(playlistDetails.length !== 0, 'Playlist not found in DOM');
-  playlistDetails[0].appendChild(lengthLi);
+  console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
+  playlist_details[0].appendChild(length_li);
 };
 
-
-var keysURL = chrome.extension.getURL("keys.json");
-readTextFile(keysURL, function(json) {
+// Main
+var keys_URL = chrome.extension.getURL("keys.json");
+readTextFile(keys_URL, function(json) {
   var data = JSON.parse(json);
   console.log(data);
-  var url = document.location
-  getPlaylistLength(document.location.pathname === "/playlist" ? "long" : "short", function (length) {
+  var url = document.location;
+  getPlaylistLength("PLmKbqjSZR8TZa7wyVoVq2XMHxxWREyiFc", data["YTDataAPIKey"], function (response) {
     console.log("Calculated length:" + length);
-    renderLengthInDOM(length);
+    renderLengthInDOM(document.location.pathname === "/playlist" ? "long" : "short", length);
   });
 });
 console.log("Script ran");
