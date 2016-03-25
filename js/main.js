@@ -10,6 +10,7 @@ function getPlaylistLength(format_string, callback) {
   // TODO: Youtube api to get playlist length
   console.log("Getting playlist length");
   var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
+  var apiUrl = "https://www.googleapis.com/youtube/v3/playlists"
   var length = data.reduce(function(previous, current) {
     var dur = moment.duration(previous);
     dur.add(moment.duration(current));
@@ -45,46 +46,29 @@ function formatDuration(duration, format_string) {
 }
 
 /**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
+ * @param {string} url - The URL to get from
+ * @param {function(Response)} callback - Called when the GET request finishes
+ * @param {function(error)} errorCallback - Called when the request returns an error
  */
 
-// function getImageUrl(searchTerm, callback, errorCallback) {
-//   // Google image search - 100 searches per day.
-//   // https://developers.google.com/image-search/
-//   var searchUrl = 'https://ajax.googleapis.com/ajax/services/search/images' +
-//     '?v=1.0&q=' + encodeURIComponent(searchTerm);
-//   var x = new XMLHttpRequest();
-//   x.open('GET', searchUrl);
-//   // The Google image search API responds with JSON, so let Chrome parse it.
-//   x.responseType = 'json';
-//   x.onload = function() {
-//     // Parse and process the response from Google Image Search.
-//     var response = x.response;
-//     if (!response || !response.responseData || !response.responseData.results ||
-//         response.responseData.results.length === 0) {
-//       errorCallback('No response from Google Image search!');
-//       return;
-//     }
-//     var firstResult = response.responseData.results[0];
-//     // Take the thumbnail instead of the full image to get an approximately
-//     // consistent image size.
-//     var imageUrl = firstResult.tbUrl;
-//     var width = parseInt(firstResult.tbWidth);
-//     var height = parseInt(firstResult.tbHeight);
-//     console.assert(
-//         typeof imageUrl == 'string' && !isNaN(width) && !isNaN(height),
-//         'Unexpected respose from the Google Image Search API!');
-//     callback(imageUrl, width, height);
-//   };
-//   x.onerror = function() {
-//     errorCallback('Network error.');
-//   };
-//   x.send();
-// }
+function asyncJsonGET(url, callback, errorCallback) {
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", url);
+  xmlHttp.responseType = 'json'
+  x.onload = function() {
+    if (!x.response) {
+      errorCallback("No response.")
+    } else if (x.response.error) {
+      errorCallback(x.response.error)
+    } else {
+      callback(x.response);
+    }
+  };
+  x.onerror = function() {
+    errorCallback('Network error.');
+  };
+  xmlHttp.send(null);
+};
 
 /**
  * Read a local json text file.
@@ -106,88 +90,13 @@ function readTextFile(file, callback) {
     rawFile.send(null);
 };
 
-var iso8601DurationRegex = /(-)?P(?:([\.,\d]+)Y)?(?:([\.,\d]+)M)?(?:([\.,\d]+)W)?(?:([\.,\d]+)D)?T(?:([\.,\d]+)H)?(?:([\.,\d]+)M)?(?:([\.,\d]+)S)?/;
-
-function parseISO8601Duration(iso8601Duration) {
-  var matches = iso8601Duration.match(iso8601DurationRegex);
-
-  var duration = {
-    sign: matches[1] === undefined ? '+' : '-',
-    years: matches[2] === undefined ? 0 : matches[2],
-    months: matches[3] === undefined ? 0 : matches[3],
-    weeks: matches[4] === undefined ? 0 : matches[4],
-    days: matches[5] === undefined ? 0 : matches[5],
-    hours: matches[6] === undefined ? 0 : matches[6],
-    minutes: matches[7] === undefined ? 0 : matches[7],
-    seconds: matches[8] === undefined ? 0 : matches[8]
-  };
-  return fixISO8601DurationOverflow(duration);
-};
-
-function fixISO8601DurationOverflow(duration) {
-
-  while (duration["seconds"] >= 60) {
-    duration["minutes"] += 1;
-    duration["seconds"] -= 60;
-  };
-  while (duration["minutes"] >= 60) {
-    duration["hours"] += 1;
-    duration["minutes"] -= 60;
-  };
-  while (duration["hours"] >= 24) {
-    duration["days"] += 1;
-    duration["hours"] -= 24;
-  };
-  if (duration["weeks"]) {
-    console.error("Week duration overflow in ISO 8601 formats not implemented");
-  };
-  var daysinmonth = daysInMonth(2016, new Date().getMonth() + duration["months"]);
-  while (duration["days"] >= daysinmonth) {
-    duration["months"] += 1;
-    duration["days"] -= daysinmonth;
-    daysinmonth = daysInMonth(2016, new Date().getMonth() + duration["months"]);
-  };
-
-  while (duration["months"] >= 12) {
-    duration["years"] += 1;
-    duration["months"] -= 12;
-  };
-
-  return duration;
-};
-
-function addParsedISO8601Durations(left, right) {
-  var add = {
-    sign: '+',
-    years: left["years"] + right["years"],
-    months: left["months"] + right["months"],
-    weeks: 0, // It is unecessary to add weeks, since days + months define the weeks. I think.
-    days: left["days"] + right["days"],
-    hours: left["hours"] + right["hours"],
-    minutes: left["minutes"] + right["minutes"],
-    seconds: left["seconds"] + right["seconds"]
-  };
-
-  return fixISO8601DurationOverflow(add);
-};
-
-/**
- * Gives the number of days in a particular month
- *
- * @param {int} year - The year the month is in
- * @param {int} month - The specific month you want the days in
- */
-function daysInMonth(year, month) {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-};
 
 /**
  * Adds a playlist length to the DOM
  *
  * @param {string} length - The length of the playlist
  */
-
-function renderLength(length) {
+function renderLengthInDOM(length) {
   var lengthLi = document.getElementById('pl-detail-length')
   if (lengthLi === null) {
     lengthLi = document.createElement('li');
@@ -210,8 +119,8 @@ readTextFile(keysURL, function(json) {
   var url = document.location
   getPlaylistLength(document.location.pathname === "/playlist" ? "long" : "short", function (length) {
     console.log("Calculated length:" + length);
-    renderLength(length);
+    renderLengthInDOM(length);
   });
 });
 console.log("Script ran");
-})(this)
+})(this);
