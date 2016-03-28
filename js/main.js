@@ -12,9 +12,12 @@ function getPlaylistLength(playlist_ID, key, callback) {
   console.log("Getting playlist length");
   var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
   var api_url = "https://www.googleapis.com/youtube/v3/playlists" + "?part=snippet" + "&id=" + playlist_ID + "&fields=items(contentDetails%2Csnippet)%2CnextPageToken%2CpageInfo&key=" + key;
+  var j = asyncJsonGET(api_url, function(res) {
+    console.log(res)
+  }, console.log);
   var length = data.reduce(function(previous, current) {
     var duration = moment.duration(previous);
-    dur.add(moment.duration(current));
+    duration.add(moment.duration(current));
     return duration;
   });
   callback(length);
@@ -27,6 +30,7 @@ function getPlaylistLength(playlist_ID, key, callback) {
  * @param {string} format_string - the string that will be used by .format() or you can use the two default values
  */
 function formatDuration(duration, format_string) {
+  console.log(duration)
   var length;
   if (format_string === "long") {
     format = [
@@ -53,9 +57,9 @@ function formatDuration(duration, format_string) {
  */
 
 function asyncJsonGET(url, callback, errorCallback) {
-  var xml_http = new XMLHttpRequest();
-  xml_http.open("GET", url);
-  xml_http.responseType = 'json';
+  var x = new XMLHttpRequest();
+  x.open("GET", url);
+  x.responseType = 'json';
   x.onload = function() {
     if (x.status === 400 || x.status === 404) {
       errorCallback(x.status);
@@ -70,7 +74,7 @@ function asyncJsonGET(url, callback, errorCallback) {
   x.onerror = function() {
     errorCallback('Network error.');
   };
-  xmlHttp.send(null);
+  x.send(null);
 };
 
 /**
@@ -83,14 +87,14 @@ function asyncJsonGET(url, callback, errorCallback) {
 
 function readTextFile(file, callback) {
   var raw_file = new XMLHttpRequest();
-  rawFile.overrideMimeType("application/json");
-  rawFile.open("GET", file, true);
-  rawFile.onreadystatechange = function() {
-      if (rawFile.readyState === 4 && rawFile.status == "200") {
-          callback(rawFile.responseText);
+  raw_file.overrideMimeType("application/json");
+  raw_file.open("GET", file, true);
+  raw_file.onreadystatechange = function() {
+      if (raw_file.readyState === 4 && raw_file.status == "200") {
+          callback(raw_file.responseText);
       };
   };
-  rawFile.send(null);
+  raw_file.send(null);
 };
 
 
@@ -98,10 +102,10 @@ function readTextFile(file, callback) {
  * Adds a playlist length to the DOM
  *
  * @param {string} format_string - used by duration.format to format the length
- * @param {string} unformatted_length - The length of the playlist in ISO 8601 format
+ * @param {string} length - The length of the playlist as a moment.Duration
  */
-function renderLengthInDOM(format_string, unformatted_length) {
-  var length = formatDuration(unformatted_length, format_string)
+function renderLengthInDOM(length, format_string) {
+  var length = formatDuration(length, format_string)
   var length_li = document.getElementById('pl-detail-length');
   if (length_li === null) {
     length_li = document.createElement('li');
@@ -123,8 +127,9 @@ readTextFile(keys_URL, function(json) {
   console.log(data);
   var url = document.location;
   getPlaylistLength("PLmKbqjSZR8TZa7wyVoVq2XMHxxWREyiFc", data["YTDataAPIKey"], function (response) {
+    var length = moment.duration("PT32H10M33S")
     console.log("Calculated length:" + length);
-    renderLengthInDOM(document.location.pathname === "/playlist" ? "long" : "short", length);
+    renderLengthInDOM(length, document.location.pathname === "/playlist" ? "long" : "short");
   });
 });
 console.log("Script ran");
