@@ -2,7 +2,7 @@
 
 This is an extension for [YouTube](https://www.youtube.com). It is meant to be like the Reddit Extension Suite, like with cool options and stuff :D
 
-Since [YouTube Magic]() may stop working, I wanted to start this project.
+Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-for-youtube/abjcfabbhafbcdfjoecdgepllmpfceif) may stop working, I wanted to start this project.
 
 ###Current features:
 None right now :(
