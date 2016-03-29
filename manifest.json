@@ -13,7 +13,8 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/watch*&list*", "*://*.youtube.com/playlist*"],
-       "js": ["js/vendor/moment.js", "js/vendor/moment-duration-format.js", "js/main.js"]
+       "js": ["js/vendor/moment.js", "js/vendor/moment-duration-format.js", "js/main.js"],
+       "run_at": "document_start"
     }
   ],
 

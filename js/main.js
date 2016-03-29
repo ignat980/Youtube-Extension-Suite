@@ -8,13 +8,23 @@
  * @param {function(string)} callback - called when the length of a Youtube Playlist is found
  */
 function getPlaylistLength(playlist_ID, key, callback) {
-  // TODO: Youtube api to get playlist length
   console.log("Getting playlist length");
+  var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
+  "?part=contentDetails&maxResults=50&playlistId=" + playlist_ID +
+  "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=" + key;
+  // So after reading a lot, there are a lot of hoops to go through to get all of the items' durations.
+  // I have to call /v3/playlistItems to get videoId's, and I can only do 50 items at a time, so I have to keep track of a pageToken
+  // I then have to call /v3/videos with all video id's, and sum all the durations together
+  // Obviously this is a lot of time to process, so I guess I would have a load indicator or something, I wonder if I can use youtube's
   var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-  var api_url = "https://www.googleapis.com/youtube/v3/playlists" + "?part=snippet" + "&id=" + playlist_ID + "&fields=items(contentDetails%2Csnippet)%2CnextPageToken%2CpageInfo&key=" + key;
-  var j = asyncJsonGET(api_url, function(res) {
-    console.log(res)
-  }, console.log);
+  var j = asyncJsonGET(playlist_api_url, function(res) {
+    console.log(res);
+    // TODO: Call GET /v3/videos to get video information
+    // TODO: Convert video objects to what the data variable looks like
+    // TODO: Render length :D
+  }, function(err) {
+    console.error(err);
+  });
   var length = data.reduce(function(previous, current) {
     var duration = moment.duration(previous);
     duration.add(moment.duration(current));
@@ -30,7 +40,7 @@ function getPlaylistLength(playlist_ID, key, callback) {
  * @param {string} format_string - the string that will be used by .format() or you can use the two default values
  */
 function formatDuration(duration, format_string) {
-  console.log(duration)
+  console.log(duration);
   var length;
   if (format_string === "long") {
     format = [
@@ -62,7 +72,7 @@ function asyncJsonGET(url, callback, errorCallback) {
   x.responseType = 'json';
   x.onload = function() {
     if (x.status === 400 || x.status === 404) {
-      errorCallback(x.status);
+      errorCallback(x);
     } else if (!x.response) {
       errorCallback("No response.");
     } else if (x.response.error) {
@@ -105,7 +115,7 @@ function readTextFile(file, callback) {
  * @param {string} length - The length of the playlist as a moment.Duration
  */
 function renderLengthInDOM(length, format_string) {
-  var length = formatDuration(length, format_string)
+  var length = formatDuration(length, format_string);
   var length_li = document.getElementById('pl-detail-length');
   if (length_li === null) {
     length_li = document.createElement('li');
@@ -120,17 +130,18 @@ function renderLengthInDOM(length, format_string) {
   playlist_details[0].appendChild(length_li);
 };
 
-// Main
-var keys_URL = chrome.extension.getURL("keys.json");
-readTextFile(keys_URL, function(json) {
-  var data = JSON.parse(json);
-  console.log(data);
-  var url = document.location;
-  getPlaylistLength("PLmKbqjSZR8TZa7wyVoVq2XMHxxWREyiFc", data["YTDataAPIKey"], function (response) {
-    var length = moment.duration("PT32H10M33S")
-    console.log("Calculated length:" + length);
-    renderLengthInDOM(length, document.location.pathname === "/playlist" ? "long" : "short");
+document.addEventListener('DOMContentLoaded', function main() {
+  var keys_URL = chrome.extension.getURL("keys.json");
+  readTextFile(keys_URL, function(json) {
+    var data = JSON.parse(json);
+    console.log(data);
+    var url = document.location;
+    getPlaylistLength("PLmKbqjSZR8TZa7wyVoVq2XMHxxWREyiFc", data["YTDataAPIKey"], function (response) {
+      var length = moment.duration("PT32H10M33S");
+      console.log("Calculated length:" + length);
+      renderLengthInDOM(length, document.location.pathname === "/playlist" ? "long" : "short");
+    });
   });
+  console.log("Script ran");
 });
-console.log("Script ran");
 })(this);
