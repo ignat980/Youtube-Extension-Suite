@@ -135,8 +135,10 @@ document.addEventListener('DOMContentLoaded', function main() {
   readTextFile(keys_URL, function(json) {
     var data = JSON.parse(json);
     console.log(data);
-    var url = document.location;
-    getPlaylistLength("PLmKbqjSZR8TZa7wyVoVq2XMHxxWREyiFc", data["YTDataAPIKey"], function (response) {
+    var list_regex = /(?:https?:\/\/)www\.youtube.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([^&\s]+)).*/g
+    var url = document.location.href;
+    var list_id = url.match(list_regex)[1]
+    getPlaylistLength(list_id, data["YTDataAPIKey"], function (response) {
       var length = moment.duration("PT32H10M33S");
       console.log("Calculated length:" + length);
       renderLengthInDOM(length, document.location.pathname === "/playlist" ? "long" : "short");
