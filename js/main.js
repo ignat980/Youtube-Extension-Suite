@@ -52,7 +52,7 @@ function readTextFile(file, callback) {
  * @param {[string]} data - An array of ISO 8601 formatted strings
  * @returns {Duration} - The sum of the ISO 8601 strings as a moment.Duration object
  */
-function sumLengths(data) {
+function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
   return data.reduce(function(previous, current) {
     if(typeof previous === 'string') {
@@ -117,7 +117,7 @@ function getPlaylistLength(playlist_ID, key, callback) {
     // TODO: Convert video objects to what the data variable looks like
     // TODO: Render length :D
     var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-    length = renderLength(sumLengths(data), document.location.pathname === "/playlist" ? "long" : "short"))
+    length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short"))
     callback(length);
   }, function(err) {
     console.error(err);
