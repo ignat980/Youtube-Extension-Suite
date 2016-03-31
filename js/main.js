@@ -124,26 +124,40 @@ function getPlaylistLength(playlist_ID, key, callback) {
   });
 };
 
-/**
- * Renders a playlist length in the DOM
- *
- * @param {string} length - A readable length of the playlist
- */
-function renderLengthInDOM(length) {
+function getLengthDetail() {
   var length_li = document.getElementById('pl-detail-length');
   if (!length_li) {
     length_li = document.createElement('li');
     length_li.setAttribute('id','pl-detail-length');
   };
-  // var loader = document.getElementById('');
-  length_li.innerText = "Total time: " + length;
+  return length_li;
+};
+
+
+function getPlaylistDetails() {
   var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
   if (playlist_details.length === 0) {
     playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
   };
   console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
-  playlist_details[0].appendChild(length_li);
+  return playlist_details[0];
 };
+
+
+function resetLengthInDOMWith(element) {
+  length_li = getLengthDetail();
+  length_li.innerText = "";
+  var loader = document.getElementById('pl-loader-gif');
+  if (loader) {
+    length_li.removeChild(loader);
+  };
+  length_li.appendChild(element);
+
+  var playlistDetails = getPlaylistDetails();
+  if (!playlistDetails.contains(length_li)) {
+    playlistDetails.appendChild(length_li);
+  };
+}
 
 /**
  * Adds a playlist length to the DOM
@@ -153,37 +167,26 @@ function renderLengthInDOM(length) {
 function addLengthToDOM(length) {
   console.log("Adding length:" + length);
   if (document.readyState === "interactive" || document.readyState === "complete"){
-    renderLengthInDOM(length);
+    resetLengthInDOMWith(document.createTextNode("Total time: " + length));
   } else {
     function DOMLoadedHandler(){
-      renderLengthInDOM(length);
+      resetLengthInDOMWith(document.createTextNode("Total time: " + length));
       document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
     };
     document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
 };
 
-/**
- * Adds a loader gif to the playlist details
- */
-function addLoader() {
-  var length_li = document.getElementById('pl-detail-length');
-  if (!length_li) {
-    length_li = document.createElement('li');
-    length_li.setAttribute('id','pl-detail-length');
-    var spinner = document.createElement('span');
-    spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
-    spinner.setAttribute('id', 'pl-loader-gif')
-    length_li.appendChild(spinner)
-  };
-};
 
 /**
  * Main function, run once the page has loaded
  */
 function main() {
   document.removeEventListener('DOMContentLoaded', main);
-  addLoader()
+  var spinner = document.createElement('span');
+  spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
+  spinner.setAttribute('id', 'pl-loader-gif');
+  resetLengthInDOMWith(spinner)
   console.log("Script ran");
 };
 document.addEventListener('DOMContentLoaded', main);
