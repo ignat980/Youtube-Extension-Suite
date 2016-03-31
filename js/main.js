@@ -117,7 +117,7 @@ function getPlaylistLength(playlist_ID, key, callback) {
     // TODO: Convert video objects to what the data variable looks like
     // TODO: Render length :D
     var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-    length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short"))
+    length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short");
     callback(length);
   }, function(err) {
     console.error(err);
@@ -131,7 +131,7 @@ function getPlaylistLength(playlist_ID, key, callback) {
  */
 function renderLengthInDOM(length) {
   var length_li = document.getElementById('pl-detail-length');
-  if (length_li === null) {
+  if (!length_li) {
     length_li = document.createElement('li');
     length_li.setAttribute('id','pl-detail-length');
   };
@@ -172,8 +172,18 @@ readTextFile(keys_URL, function(json) {
   getPlaylistLength(list_id, keys["YTDataAPIKey"], addLengthToDOM);
 });
 
-document.addEventListener('DOMContentLoaded', function main() {
-  document.removeEventListener('DOMContentLoaded');
+function addLoader() {
+  var length_li = document.getElementById('pl-detail-length');
+  if (!length_li) {
+    length_li = document.createElement('li');
+    length_li.setAttribute('id','pl-detail-length');
+  };
+
+};
+
+function main() {
+  document.removeEventListener('DOMContentLoaded', main);
   console.log("Script ran");
-});
+};
+document.addEventListener('DOMContentLoaded', main);
 })(this);
