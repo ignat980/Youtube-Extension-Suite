@@ -135,6 +135,7 @@ function renderLengthInDOM(length) {
     length_li = document.createElement('li');
     length_li.setAttribute('id','pl-detail-length');
   };
+  // var loader = document.getElementById('');
   length_li.innerText = "Total time: " + length;
   var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
   if (playlist_details.length === 0) {
@@ -162,6 +163,34 @@ function addLengthToDOM(length) {
   };
 };
 
+/**
+ * Adds a loader gif to the playlist details
+ */
+function addLoader() {
+  var length_li = document.getElementById('pl-detail-length');
+  if (!length_li) {
+    length_li = document.createElement('li');
+    length_li.setAttribute('id','pl-detail-length');
+    var spinner = document.createElement('span');
+    spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
+    spinner.setAttribute('id', 'pl-loader-gif')
+    length_li.appendChild(spinner)
+  };
+};
+
+/**
+ * Main function, run once the page has loaded
+ */
+function main() {
+  document.removeEventListener('DOMContentLoaded', main);
+  addLoader()
+  console.log("Script ran");
+};
+document.addEventListener('DOMContentLoaded', main);
+
+/**
+ * Run before anything else
+ */
 var keys_URL = chrome.extension.getURL("keys.json");
 readTextFile(keys_URL, function(json) {
   var keys = JSON.parse(json);
@@ -171,19 +200,4 @@ readTextFile(keys_URL, function(json) {
   console.log("list id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"], addLengthToDOM);
 });
-
-function addLoader() {
-  var length_li = document.getElementById('pl-detail-length');
-  if (!length_li) {
-    length_li = document.createElement('li');
-    length_li.setAttribute('id','pl-detail-length');
-  };
-
-};
-
-function main() {
-  document.removeEventListener('DOMContentLoaded', main);
-  console.log("Script ran");
-};
-document.addEventListener('DOMContentLoaded', main);
 })(this);
