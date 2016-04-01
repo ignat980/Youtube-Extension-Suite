@@ -138,6 +138,10 @@ function getPlaylistLength(playlist_ID, key, callback) {
     // TODO: Call GET /v3/videos to get video information
     // TODO: Convert video objects to what the data variable looks like
     // TODO: Render length :D
+    var videoIds = res.items.map(function(item) {
+      return item.contentDetails.videoId
+    }).join(',');
+    asyncJsonGET(videos_api_url.format(videoIds))
     var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
     var length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short");
     callback(length);
