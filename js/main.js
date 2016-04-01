@@ -145,10 +145,13 @@ function getPlaylistDetails() {
 
 
 function resetLengthInDOMWith(element) {
+  console.log();
   length_li = getLengthDetail();
+  console.log("Resetting Length Detail");
   length_li.innerText = "";
   var loader = document.getElementById('pl-loader-gif');
   if (loader) {
+    console.log("Removing loader");
     length_li.removeChild(loader);
   };
   length_li.appendChild(element);
@@ -165,14 +168,16 @@ function resetLengthInDOMWith(element) {
  * @param {string} length - A readable length of the playlist
  */
 function addLengthToDOM(length) {
-  console.log("Adding length:" + length);
-  if (document.readyState === "interactive" || document.readyState === "complete"){
+  function DOMLoadedHandler(){
     resetLengthInDOMWith(document.createTextNode("Total time: " + length));
+    document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
+  };
+  console.log("Adding length:", length);
+  if (document.readyState === "interactive" || document.readyState === "complete") {
+    DOMLoadedHandler();
   } else {
-    function DOMLoadedHandler(){
-      resetLengthInDOMWith(document.createTextNode("Total time: " + length));
-      document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
-    };
+    console.log("Removing main, adding length");
+    document.removeEventListener('DOMContentLoaded', main);
     document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
 };
@@ -182,12 +187,13 @@ function addLengthToDOM(length) {
  * Main function, run once the page has loaded
  */
 function main() {
+  console.log("Dom loaded");
   document.removeEventListener('DOMContentLoaded', main);
   var spinner = document.createElement('span');
   spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
   spinner.setAttribute('id', 'pl-loader-gif');
-  resetLengthInDOMWith(spinner)
-  console.log("Script ran");
+  resetLengthInDOMWith(spinner);
+  console.log("Main ran, loader added");
 };
 document.addEventListener('DOMContentLoaded', main);
 
