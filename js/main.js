@@ -1,5 +1,25 @@
 // Copyright (c) 2016 Ignat Remizov. All rights reserved.
 ;(function(root, undefined) {
+
+/**
+ * Adds formatting to strings, used like "Hello {0}!".format("World")
+ *
+ * @source https://stackoverflow.com/a/4673436/3923022
+ */
+function addFormatString(){
+  if (!String.prototype.format) {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/{(\d+)}/g, function(match, number) {
+        return typeof args[number] != 'undefined'
+          ? args[number]
+          : match
+        ;
+      });
+    };
+  }
+}
+
 /**
  * @param {string} url - The URL to get from
  * @param {function(Response)} callback - Called when the GET json request finishes
@@ -105,19 +125,21 @@ function formatDuration(duration, format_string) {
 function getPlaylistLength(playlist_ID, key, callback) {
   console.log("Getting playlist length");
   var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
-  "?part=contentDetails&maxResults=50&playlistId=" + playlist_ID +
+  "?part=contentDetails&maxResults=50&playlistId={0}" +
   "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=" + key;
   // So after reading a lot, there are a lot of hoops to go through to get all of the items' durations.
   // I have to call /v3/playlistItems to get videoId's, and I can only do 50 items at a time, so I have to keep track of a pageToken
   // I then have to call /v3/videos with all video id's, and sum all the durations together
   // Obviously this is a lot of time to process, so I guess I would have a load indicator or something, I wonder if I can use youtube's
-  asyncJsonGET(playlist_api_url, function(res) {
+  var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
+  "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
+  asyncJsonGET(playlist_api_url.format(playlistId), function(res) {
     console.log("Playlist response:", res);
     // TODO: Call GET /v3/videos to get video information
     // TODO: Convert video objects to what the data variable looks like
     // TODO: Render length :D
     var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-    length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short");
+    var length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short");
     callback(length);
   }, function(err) {
     console.error(err);
@@ -208,5 +230,6 @@ readTextFile(keys_URL, function(json) {
   var list_id = url.match(list_regex)[1];
   console.log("list id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"], addLengthToDOM);
+
 });
 })(this);
