@@ -17,8 +17,11 @@ function addFormatString() {
 }
 
 /**
- * Runs a for loop asynchronously
+ * Runs a for loop asynchronously, call the funtion passed to your loop when you want the loop to run again
  *
+ * @param: {object} o - a loop object that contains a length property for how many times to iterate,
+ *                      a loop property which is the iteration body,
+ *                      a callback property that gets called at the end of the for loop
  * @source https://stackoverflow.com/a/7654602/3923022
  */
 function asyncLoop(o) {
@@ -28,13 +31,15 @@ function asyncLoop(o) {
   function loop() {
     i++;
     if(i == length) {
-      o.callback();
+      if (o.callback) {
+        o.callback();
+      };
       return;
-    }
+    };
     o.loop(loop, i);
-  }
+  };
   loop();//init
-}
+};
 
 /**
  * @param {string} url - The URL to get from
@@ -137,7 +142,7 @@ function formatDuration(duration, format_string) {
  */
 function getPlaylistLength(playlist_id, key, callback) {
   console.log("Getting playlist length");
-  // TODO: cache etag to quickly return playlist length
+  // TODO: cache etag to quickly return playlist length !important
   var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
   "?part=contentDetails&maxResults=50&playlistId={0}" +
   "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken{1}&key=" + key;
@@ -161,10 +166,13 @@ function getPlaylistLength(playlist_id, key, callback) {
           asyncJsonGET(playlist_api_url.format(playlist_id, "") + "&pageToken=" + token, next_res => {
             token = next_res.nextPageToken;
             console.log("Next 50 playlist items:", next_res);
+            // Convert response into video ids
             video_ids = next_res.items.map(item => item.contentDetails.videoId);
             console.log("Videos:", video_ids);
+            // Call /videos
             asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
               console.log("Videos response:", videos);
+              // TODO: Render loading progress like "50/1000"
               length = formatDuration(sumLengthsIntoDuration(videos.items),
                        document.location.pathname === "/playlist" ? "long" : "short");
               next();
@@ -181,6 +189,7 @@ function getPlaylistLength(playlist_id, key, callback) {
         }
       });
     } else {
+      // Logic could be re-worked, but call /videos if there is less than 50 items in the playlist
       asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
         console.log("Videos response:", videos);
         length = formatDuration(sumLengthsIntoDuration(videos.items),
@@ -194,6 +203,11 @@ function getPlaylistLength(playlist_id, key, callback) {
   });
 };
 
+/**
+ * Finds or creates the element for displaying the length
+ *
+ * @returns: {Node} - a <li> element for displaying the length
+ */
 function getLengthDetail() {
   var length_li = document.getElementById('pl-detail-length');
   if (!length_li) {
@@ -203,7 +217,11 @@ function getLengthDetail() {
   return length_li;
 };
 
-
+/**
+ * Finds the element for the playlist details
+ *
+ * @returns: {Node} - a <ul> element on the page that displays details for a playlist
+ */
 function getPlaylistDetails() {
   var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
   if (playlist_details.length === 0) {
@@ -213,9 +231,12 @@ function getPlaylistDetails() {
   return playlist_details[0];
 };
 
-
+/**
+ * Resets the length element with the element passed into it
+ *
+ * @param: element
+ */
 function resetLengthInDOMWith(element) {
-  console.log();
   length_li = getLengthDetail();
   console.log("Resetting Length Detail");
   length_li.innerText = "";
