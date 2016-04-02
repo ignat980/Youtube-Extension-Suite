@@ -6,7 +6,7 @@
  *
  * @source https://stackoverflow.com/a/4673436/3923022
  */
-function addFormatString(){
+function addFormatString() {
   if (!String.prototype.format) {
     String.prototype.format = function() {
       var args = arguments;
@@ -75,14 +75,12 @@ function readTextFile(file, callback) {
 function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
   return data.reduce(function(previous, current) {
-    if(typeof previous === 'string') {
-      var duration = moment.duration(previous);
+    if(previous.contentDetails) {
+      var duration = moment.duration(previous.contentDetails.duration);
     } else {
       var duration = previous;
     };
-    if (current) {
-      duration.add(moment.duration(current));
-    };
+    duration.add(moment.duration(current.contentDetails.duration));
     return duration;
   });
 };
@@ -122,7 +120,7 @@ function formatDuration(duration, format_string) {
  * @param {string} key - The Youtube data v3 api key
  * @param {function(string)} callback - called when the length of a Youtube Playlist is parsed
  */
-function getPlaylistLength(playlist_ID, key, callback) {
+function getPlaylistLength(playlist_id, key, callback) {
   console.log("Getting playlist length");
   var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
   "?part=contentDetails&maxResults=50&playlistId={0}" +
@@ -133,18 +131,25 @@ function getPlaylistLength(playlist_ID, key, callback) {
   // Obviously this is a lot of time to process, so I guess I would have a load indicator or something, I wonder if I can use youtube's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
-  asyncJsonGET(playlist_api_url.format(playlistId), function(res) {
+  asyncJsonGET(playlist_api_url.format(playlist_id), function(res) {
     console.log("Playlist response:", res);
     // TODO: Call GET /v3/videos to get video information
     // TODO: Convert video objects to what the data variable looks like
     // TODO: Render length :D
-    var videoIds = res.items.map(function(item) {
-      return item.contentDetails.videoId
+    var video_ids = res.items.map(function(item) {
+      return item.contentDetails.videoId;
     }).join(',');
-    asyncJsonGET(videos_api_url.format(videoIds))
-    var data = ["PT32H10M33S", "PT2M01S", "PT32M10S", "PT11M5S","PT22M10S"];
-    var length = formatDuration(sumLengthsIntoDuration(data), document.location.pathname === "/playlist" ? "long" : "short");
-    callback(length);
+    asyncJsonGET(videos_api_url.format(video_ids), function(videos){
+      console.log("Videos response:", videos);
+      // var durations = videos.items.map(function(item) {
+      //   return item.contentDetails.duration;
+      // });
+      var length = formatDuration(sumLengthsIntoDuration(videos.items),
+      document.location.pathname === "/playlist" ? "long" : "short");
+      callback(length);
+    }, function(err) {
+      console.error(err);
+    });
   }, function(err) {
     console.error(err);
   });
@@ -226,6 +231,7 @@ document.addEventListener('DOMContentLoaded', main);
 /**
  * Run before anything else
  */
+addFormatString()
 var keys_URL = chrome.extension.getURL("keys.json");
 readTextFile(keys_URL, function(json) {
   var keys = JSON.parse(json);
@@ -234,6 +240,5 @@ readTextFile(keys_URL, function(json) {
   var list_id = url.match(list_regex)[1];
   console.log("list id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"], addLengthToDOM);
-
 });
 })(this);
