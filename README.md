@@ -7,7 +7,7 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 ###Current features:
 None right now :(
 
-###Working on
+###Working on:
 * Total Playlist Length
 
 ###Planned:
