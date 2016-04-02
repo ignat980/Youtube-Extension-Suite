@@ -4,20 +4,36 @@
 /**
  * Adds formatting to strings, used like "Hello {0}!".format("World")
  *
- * @source https://stackoverflow.com/a/4673436/3923022
+ * @source https://stackoverflow.com/a/4673436/3923022 and https://stackoverflow.com/a/18234317/3923022
  */
 function addFormatString() {
   if (!String.prototype.format) {
     String.prototype.format = function() {
-      var args = arguments;
-      return this.replace(/{(\d+)}/g, function(match, number) {
-        return typeof args[number] != 'undefined'
-          ? args[number]
-          : match
-        ;
-      });
+      var args = typeof arguments[0] === 'object' ? arguments[0] : arguments;
+      return this.replace(/{(\d?[A-Za-z]?)}/gi, (match, arg) =>
+        typeof args[arg] != 'undefined' ? args[arg] : match)
     };
   }
+}
+
+/**
+ * Runs a for loop asynchronously
+ *
+ * @source https://stackoverflow.com/a/7654602/3923022
+ */
+function asyncLoop(o) {
+  var i = -1,
+      length = o.i;
+
+  function loop() {
+    i++;
+    if(i == length) {
+      o.callback();
+      return;
+    }
+    o.loop(loop, i);
+  }
+  loop();//init
 }
 
 /**
@@ -74,12 +90,11 @@ function readTextFile(file, callback) {
  */
 function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
-  return data.reduce(function(previous, current) {
-    if(previous.contentDetails) {
-      var duration = moment.duration(previous.contentDetails.duration);
-    } else {
-      var duration = previous;
-    };
+  // I could map all the strings into duration objects then reduce, but that's O(2N) :p
+  // return data.map(item => moment.duration(item)).reduce((prev, next) => {prev.add(current); return prev;});
+  // Maybe I could use generators...
+  return data.reduce((previous, current) => {
+    duration = previous.contentDetails ? moment.duration(previous.contentDetails.duration) : previous;
     duration.add(moment.duration(current.contentDetails.duration));
     return duration;
   });
@@ -122,35 +137,59 @@ function formatDuration(duration, format_string) {
  */
 function getPlaylistLength(playlist_id, key, callback) {
   console.log("Getting playlist length");
+  // TODO: cache etag to quickly return playlist length
   var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
   "?part=contentDetails&maxResults=50&playlistId={0}" +
-  "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=" + key;
+  "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken{1}&key=" + key;
   // So after reading a lot, there are a lot of hoops to go through to get all of the items' durations.
   // I have to call /v3/playlistItems to get videoId's, and I can only do 50 items at a time, so I have to keep track of a pageToken
   // I then have to call /v3/videos with all video id's, and sum all the durations together
   // Obviously this is a lot of time to process, so I guess I would have a load indicator or something, I wonder if I can use youtube's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
-  "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
-  asyncJsonGET(playlist_api_url.format(playlist_id), function(res) {
+  "?part=contentDetails&id={0}&key=" + key;
+  var length;
+  // Call /playlistItems for the first 50 items
+  asyncJsonGET(playlist_api_url.format(playlist_id, "%2CpageInfo%2FtotalResults"), res => {
     console.log("Playlist response:", res);
-    // TODO: Call GET /v3/videos to get video information
-    // TODO: Convert video objects to what the data variable looks like
-    // TODO: Render length :D
-    var video_ids = res.items.map(function(item) {
-      return item.contentDetails.videoId;
-    }).join(',');
-    asyncJsonGET(videos_api_url.format(video_ids), function(videos){
-      console.log("Videos response:", videos);
-      // var durations = videos.items.map(function(item) {
-      //   return item.contentDetails.duration;
-      // });
-      var length = formatDuration(sumLengthsIntoDuration(videos.items),
-      document.location.pathname === "/playlist" ? "long" : "short");
-      callback(length);
-    }, function(err) {
-      console.error(err);
-    });
-  }, function(err) {
+    var video_ids = res.items.map(item => item.contentDetails.videoId);
+    var token = res.nextPageToken;
+    if (token) {
+      // Keep calling /playlistItems until you get to the end page
+      asyncLoop({
+        'i': 5, //Math.floor(res.pageInfo.totalResults/50),
+        'loop': (next, i) => {
+          asyncJsonGET(playlist_api_url.format(playlist_id, "") + "&pageToken=" + token, next_res => {
+            token = next_res.nextPageToken;
+            console.log("Next 50 playlist items:", next_res);
+            video_ids = next_res.items.map(item => item.contentDetails.videoId);
+            console.log("Videos:", video_ids);
+            asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
+              console.log("Videos response:", videos);
+              length = formatDuration(sumLengthsIntoDuration(videos.items),
+                       document.location.pathname === "/playlist" ? "long" : "short");
+              next();
+            }, err => {
+              console.error(err);
+            });
+          }, err => {
+            console.error(err);
+          });
+        },
+        'callback': () => {
+          console.log("Finished requesting");
+          callback(length)
+        }
+      });
+    } else {
+      asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
+        console.log("Videos response:", videos);
+        length = formatDuration(sumLengthsIntoDuration(videos.items),
+                 document.location.pathname === "/playlist" ? "long" : "short");
+      }, err => {
+        console.error(err);
+      });
+    };
+  }, err => {
     console.error(err);
   });
 };
@@ -233,7 +272,7 @@ document.addEventListener('DOMContentLoaded', main);
  */
 addFormatString()
 var keys_URL = chrome.extension.getURL("keys.json");
-readTextFile(keys_URL, function(json) {
+readTextFile(keys_URL, json => {
   var keys = JSON.parse(json);
   var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d]+)).*/;
   var url = document.location.href;
