@@ -153,10 +153,12 @@ function getPlaylistLength(playlist_id, key, callback) {
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&key=" + key;
   var length;
+  var total = 0;
   // Call /playlistItems for the first 50 items
   asyncJsonGET(playlist_api_url.format(playlist_id, "%2CpageInfo%2FtotalResults"), res => {
     console.log("Playlist response:", res);
     var video_ids = res.items.map(item => item.contentDetails.videoId);
+    total += video_ids.length
     var token = res.nextPageToken;
     if (token) {
       // Keep calling /playlistItems until you get to the end page
@@ -168,13 +170,15 @@ function getPlaylistLength(playlist_id, key, callback) {
             console.log("Next 50 playlist items:", next_res);
             // Convert response into video ids
             video_ids = next_res.items.map(item => item.contentDetails.videoId);
+            total += video_ids.length
             console.log("Videos:", video_ids);
             // Call /videos
             asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
               console.log("Videos response:", videos);
-              // TODO: Render loading progress like "50/1000"
+              setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults))
               length = formatDuration(sumLengthsIntoDuration(videos.items),
                        document.location.pathname === "/playlist" ? "long" : "short");
+
               next();
             }, err => {
               console.error(err);
@@ -194,6 +198,7 @@ function getPlaylistLength(playlist_id, key, callback) {
         console.log("Videos response:", videos);
         length = formatDuration(sumLengthsIntoDuration(videos.items),
                  document.location.pathname === "/playlist" ? "long" : "short");
+        callback(length)
       }, err => {
         console.error(err);
       });
@@ -236,20 +241,28 @@ function getPlaylistDetails() {
  *
  * @param: element
  */
-function resetLengthInDOMWith(element) {
+function setLengthInDOMWith(element) {
   length_li = getLengthDetail();
-  console.log("Resetting Length Detail");
-  length_li.innerText = "";
-  var loader = document.getElementById('pl-loader-gif');
-  if (loader) {
-    console.log("Removing loader");
-    length_li.removeChild(loader);
-  };
+  console.log("Length Detail:", length_li);
+  if (length_li.childNodes.length !== 0) {
+    if (length_li.childNodes[0].id === 'pl-loader-gif' && length_li.childNodes.length === 2) {
+      length_li.removeChild(length_li.childNodes[1])
+    } else if (length_li.childNodes[0].id !== 'pl-loader-gif') {
+      length_li.innerText = ""
+    }
+  }
   length_li.appendChild(element);
-
   var playlistDetails = getPlaylistDetails();
   if (!playlistDetails.contains(length_li)) {
     playlistDetails.appendChild(length_li);
+  };
+}
+
+function removeLoader() {
+  var loader = document.getElementById('pl-loader-gif');
+  if (loader) {
+    console.log("Removing loader");
+    loader.remove();
   };
 }
 
@@ -260,7 +273,8 @@ function resetLengthInDOMWith(element) {
  */
 function addLengthToDOM(length) {
   function DOMLoadedHandler(){
-    resetLengthInDOMWith(document.createTextNode("Total time: " + length));
+    removeLoader();
+    setLengthInDOMWith(document.createTextNode("Total time: " + length));
     document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
   console.log("Adding length:", length);
@@ -283,7 +297,7 @@ function main() {
   var spinner = document.createElement('span');
   spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
   spinner.setAttribute('id', 'pl-loader-gif');
-  resetLengthInDOMWith(spinner);
+  setLengthInDOMWith(spinner);
   console.log("Main ran, loader added");
 };
 document.addEventListener('DOMContentLoaded', main);
