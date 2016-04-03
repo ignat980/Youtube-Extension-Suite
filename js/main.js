@@ -6,7 +6,7 @@
  *
  * @source https://stackoverflow.com/a/4673436/3923022 and https://stackoverflow.com/a/18234317/3923022
  */
-function addFormatString() {
+function addFormatStringFunction() {
   if (!String.prototype.format) {
     String.prototype.format = function() {
       var args = typeof arguments[0] === 'object' ? arguments[0] : arguments;
@@ -24,21 +24,22 @@ function addFormatString() {
  *                      a callback property that gets called at the end of the for loop
  * @source https://stackoverflow.com/a/7654602/3923022
  */
-function asyncLoop(o) {
-  var i = -1,
-      length = o.i;
+var AsyncLooper = function(o) {
+  this.i = -1;
+  this.length = o.i
+  this.o = o
+  this.loop();//start iterating
+}
 
-  function loop() {
-    i++;
-    if(i == length) {
-      if (o.callback) {
-        o.callback();
-      };
-      return;
+AsyncLooper.prototype.loop = function() {
+  this.i++;
+  if(this.i === this.length) {
+    if (this.o.callback) {
+      this.o.callback();
     };
-    o.loop(loop, i);
+    return;
   };
-  loop();//init
+  this.o.loop(this.i);
 };
 
 /**
@@ -49,6 +50,7 @@ function asyncLoop(o) {
 function asyncJsonGET(url, callback, errorCallback) {
   var x = new XMLHttpRequest();
   x.open("GET", url);
+  // x.setRequestHeader("If-None-Match","etag")
   x.responseType = 'json';
   x.onload = function() {
     if (x.status === 400 || x.status === 404) {
@@ -143,69 +145,58 @@ function formatDuration(duration, format_string) {
 function getPlaylistLength(playlist_id, key, callback) {
   console.log("Getting playlist length");
   // TODO: cache etag to quickly return playlist length !important
+  // Api url to get video id's from playlistItems
   var playlist_api_url = "https://www.googleapis.com/youtube/v3/playlistItems" +
   "?part=contentDetails&maxResults=50&playlistId={0}" +
   "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken{1}&key=" + key;
-  // So after reading a lot, there are a lot of hoops to go through to get all of the items' durations.
-  // I have to call /v3/playlistItems to get videoId's, and I can only do 50 items at a time, so I have to keep track of a pageToken
-  // I then have to call /v3/videos with all video id's, and sum all the durations together
-  // Obviously this is a lot of time to process, so I guess I would have a load indicator or something, I wonder if I can use youtube's
+  // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&key=" + key;
-  var length;
-  var total = 0;
-  // Call /playlistItems for the first 50 items
-  asyncJsonGET(playlist_api_url.format(playlist_id, "%2CpageInfo%2FtotalResults"), res => {
-    console.log("Playlist response:", res);
-    var video_ids = res.items.map(item => item.contentDetails.videoId);
-    total += video_ids.length
-    var token = res.nextPageToken;
-    if (token) {
-      // Keep calling /playlistItems until you get to the end page
-      asyncLoop({
-        'i': 5, //Math.floor(res.pageInfo.totalResults/50),
-        'loop': (next, i) => {
-          asyncJsonGET(playlist_api_url.format(playlist_id, "") + "&pageToken=" + token, next_res => {
-            token = next_res.nextPageToken;
-            console.log("Next 50 playlist items:", next_res);
-            // Convert response into video ids
-            video_ids = next_res.items.map(item => item.contentDetails.videoId);
-            total += video_ids.length
-            console.log("Videos:", video_ids);
-            // Call /videos
-            asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
-              console.log("Videos response:", videos);
-              setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults))
-              length = formatDuration(sumLengthsIntoDuration(videos.items),
-                       document.location.pathname === "/playlist" ? "long" : "short");
+  var length;     // Rendered length
+  var total = 0;  // Current videos processed
+  var totalResults;
+  var token;      // Next page token
+  var video_ids;  // Array of video id's
 
-              next();
-            }, err => {
-              console.error(err);
-            });
-          }, err => {
-            console.error(err);
-          });
-        },
-        'callback': () => {
-          console.log("Finished requesting");
-          callback(length)
-        }
-      });
-    } else {
-      // Logic could be re-worked, but call /videos if there is less than 50 items in the playlist
-      asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
-        console.log("Videos response:", videos);
-        length = formatDuration(sumLengthsIntoDuration(videos.items),
-                 document.location.pathname === "/playlist" ? "long" : "short");
-        callback(length)
+  // Keep calling /playlistItems until you get to the end page
+  var looper = new AsyncLooper({
+    // i changes after the first request because no idea about total videos before
+    'i': 1,
+    'loop': (i) => {
+      // Call /playlistItems for the first 50 items
+      var first_time = (i === 0);
+      asyncJsonGET(playlist_api_url.format(playlist_id, (first_time ? "%2CpageInfo%2FtotalResults" : "")) + (token ? "&pageToken=" + token : ""), res => {
+        console.log("Next 50 Playlist Items:", res);
+        token = res.nextPageToken;
+        // If this is the first pass, set the total results and total index to iterate over
+        if (first_time) {
+          totalResults = res.pageInfo.totalResults;
+          looper.length = (totalResults < 250 ? Math.ceil(totalResults/50) : 5);
+          console.log("Looping " + looper.length + " times");
+        };
+        // Convert response into video ids
+        video_ids = res.items.map(item => item.contentDetails.videoId);
+        total += video_ids.length;
+        // Call /videos with the video id's
+        asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
+          console.log("Videos response:", videos);
+          setLengthInDOMWith(document.createTextNode(total + "/" + totalResults), (first_time ? -1 : 1));
+          if (length) {videos.items.push({contentDetails:{duration:length}})};
+          length = formatDuration(sumLengthsIntoDuration(videos.items),
+                   document.location.pathname === "/playlist" ? "long" : "short");
+          looper.loop();
+        }, err => {
+          console.error(err);
+        }); //Close Videos call
       }, err => {
         console.error(err);
-      });
-    };
-  }, err => {
-    console.error(err);
-  });
+      }); //Close Playlist items call
+    },
+    'callback': () => {
+      console.log("Finished requesting");
+      callback(length);
+    }
+  }); //Close Async loop
 };
 
 /**
@@ -239,19 +230,17 @@ function getPlaylistDetails() {
 /**
  * Resets the length element with the element passed into it
  *
- * @param: element
+ * @param: {Node} element - The element to be setAttribute
+ * @param: {int} index - An index for which child to set, set to -1 to append
  */
-function setLengthInDOMWith(element) {
+function setLengthInDOMWith(element, index) {
   length_li = getLengthDetail();
   console.log("Length Detail:", length_li);
-  if (length_li.childNodes.length !== 0) {
-    if (length_li.childNodes[0].id === 'pl-loader-gif' && length_li.childNodes.length === 2) {
-      length_li.removeChild(length_li.childNodes[1])
-    } else if (length_li.childNodes[0].id !== 'pl-loader-gif') {
-      length_li.innerText = ""
-    }
+  if (index === -1) {
+    length_li.appendChild(element)
+  } else {
+    length_li.replaceChild(element, length_li.childNodes[index]);
   }
-  length_li.appendChild(element);
   var playlistDetails = getPlaylistDetails();
   if (!playlistDetails.contains(length_li)) {
     playlistDetails.appendChild(length_li);
@@ -274,7 +263,7 @@ function removeLoader() {
 function addLengthToDOM(length) {
   function DOMLoadedHandler(){
     removeLoader();
-    setLengthInDOMWith(document.createTextNode("Total time: " + length));
+    setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
     document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
   console.log("Adding length:", length);
@@ -297,7 +286,7 @@ function main() {
   var spinner = document.createElement('span');
   spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
   spinner.setAttribute('id', 'pl-loader-gif');
-  setLengthInDOMWith(spinner);
+  setLengthInDOMWith(spinner, -1);
   console.log("Main ran, loader added");
 };
 document.addEventListener('DOMContentLoaded', main);
@@ -305,7 +294,7 @@ document.addEventListener('DOMContentLoaded', main);
 /**
  * Run before anything else
  */
-addFormatString()
+addFormatStringFunction()
 var keys_URL = chrome.extension.getURL("keys.json");
 readTextFile(keys_URL, json => {
   var keys = JSON.parse(json);
