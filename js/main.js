@@ -276,6 +276,27 @@ function addLengthToDOM(length) {
   };
 };
 
+function testingEtag(url, etag, callback) {
+  var x = new XMLHttpRequest();
+  x.open("GET", url);
+  x.setRequestHeader("If-None-Match", etag)
+  x.responseType = 'json';
+  x.onload = function() {
+    if (x.status === 400 || x.status === 404) {
+      console.error(x);
+    } else if (!x.response) {
+      console.error("No response.");
+    } else if (x.response.error) {
+      console.error(x.response.error);
+    } else {
+      callback(x);
+    };
+  };
+  x.onerror = function() {
+    errorCallback('Network error.');
+  };
+  x.send(null);
+}
 
 /**
  * Main function, run once the page has loaded
