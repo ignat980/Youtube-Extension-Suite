@@ -6,7 +6,6 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 
 ###Current features:
 * Displays Total Playlist Length for public playlists with less than 250 videos
-None right now :(
 
 ###Working on:
 * View total playlist length for private playlists
