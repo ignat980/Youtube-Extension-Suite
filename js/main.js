@@ -157,7 +157,11 @@ function getPlaylistLength(playlist_id, key, callback) {
   var totalResults;
   var token;      // Next page token
   var video_ids;  // Array of video id's
-
+  // testingEtag("https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=LLAvfgOfl5FKeWrIib2BJLvw&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=AIzaSyBMtCaMRDdNsOrIuc6VKcIJveKMmpIHsbk&pageToken=CMgBEAA",
+  //  '"q5k97EMVGxODeKcDgp8gnMu79wM/B37sFh9_yWmCBU2S9mcVBmN90_Q"', r => {
+  //    console.log("Testing etag response:", r);
+  // });
+  // return
   // Keep calling /playlistItems until you get to the end page
   var looper = new AsyncLooper({
     // i changes after the first request because no idea about total videos before
@@ -279,6 +283,10 @@ function addLengthToDOM(length) {
 function testingEtag(url, etag, callback) {
   var x = new XMLHttpRequest();
   x.open("GET", url);
+  // Format of etag should be exactly like
+  // "q5k97EMVGxODeKcDgp8gnMu79wM/yuXnADNEaHjLlGZ9sRsVjutAOEM"
+  // So the etag would look like
+  // "/"q5k97EMVGxODeKcDgp8gnMu79wM//yuXnADNEaHjLlGZ9sRsVjutAOEM/""
   x.setRequestHeader("If-None-Match", etag)
   x.responseType = 'json';
   x.onload = function() {
@@ -289,6 +297,7 @@ function testingEtag(url, etag, callback) {
     } else if (x.response.error) {
       console.error(x.response.error);
     } else {
+      console.log("Response headers:", x.getAllResponseHeaders());
       callback(x);
     };
   };
@@ -296,6 +305,7 @@ function testingEtag(url, etag, callback) {
     errorCallback('Network error.');
   };
   x.send(null);
+  console.log("Reqest headers (?):", x.getAllResponseHeaders());
 }
 
 /**
@@ -319,10 +329,11 @@ addFormatStringFunction()
 var keys_URL = chrome.extension.getURL("keys.json");
 readTextFile(keys_URL, json => {
   var keys = JSON.parse(json);
-  var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d]+)).*/;
+  var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
   var url = document.location.href;
   var list_id = url.match(list_regex)[1];
   console.log("list id:",list_id);
-  getPlaylistLength(list_id, keys["YTDataAPIKey"], addLengthToDOM);
+  getPlaylistLength(list_id, keys["YTDataAPIKey"],
+    addLengthToDOM);
 });
 })(this);
