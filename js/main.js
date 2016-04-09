@@ -151,7 +151,7 @@ function getPlaylistLength(playlist_id, key, callback) {
   "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken{1}&key=" + key;
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
-  "?part=contentDetails&id={0}&key=" + key;
+  "?part=contentDetails&id={0}&fields=etag%2Citems%2FcontentDetails%2Fduration&key=" + key;
   var length;     // Rendered length
   var total = 0;  // Current videos processed
   var totalResults;
