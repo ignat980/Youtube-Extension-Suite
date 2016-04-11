@@ -185,7 +185,7 @@ function getPlaylistLength(playlist_id, key, callback) {
         // Call /videos with the video id's
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Videos response:", videos);
-          setLengthInDOMWith(document.createTextNode(total + "/" + totalResults), (first_time ? -1 : 1));
+          setLengthInDOMWith(document.createTextNode(total + "/" + totalResults), 1);
           looper.loop();
           durations = durations.concat(videos.items)
         }, err => {
@@ -236,16 +236,16 @@ function getPlaylistDetails() {
  * Resets the length element with the element passed into it
  *
  * @param: {Node} element - The element to be setAttribute
- * @param: {int} index - An index for which child to set, set to -1 to append
+ * @param: {int} index - An index for which child to set, out of bounds index appends to the end
  */
 function setLengthInDOMWith(element, index) {
   length_li = getLengthDetail();
-  console.log("Length Detail:", length_li);
-  if (index === -1) {
-    length_li.appendChild(element)
-  } else {
+  console.log("Length Detail:", length_li, "Index:", index);
+  if (index < length_li.childNodes.length) {
     length_li.replaceChild(element, length_li.childNodes[index]);
-  }
+  } else {
+    length_li.appendChild(element);
+  };
   var playlistDetails = getPlaylistDetails();
   if (!playlistDetails.contains(length_li)) {
     playlistDetails.appendChild(length_li);
@@ -261,17 +261,17 @@ function removeLoader() {
 }
 
 /**
- * Adds a playlist length to the DOM
+ * Renders a playlist length to the DOM
  *
  * @param {string} length - A readable length of the playlist
  */
-function addLengthToDOM(length) {
+function renderLengthToDOM(length) {
   function DOMLoadedHandler(){
+    console.log("Adding length:", length);
     removeLoader();
     setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
     document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
-  console.log("Adding length:", length);
   if (document.readyState === "interactive" || document.readyState === "complete") {
     DOMLoadedHandler();
   } else {
@@ -318,7 +318,7 @@ function main() {
   var spinner = document.createElement('span');
   spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
   spinner.setAttribute('id', 'pl-loader-gif');
-  setLengthInDOMWith(spinner, -1);
+  setLengthInDOMWith(spinner, 0);
   console.log("Main ran, loader added");
 };
 document.addEventListener('DOMContentLoaded', main);
@@ -335,6 +335,7 @@ readTextFile(keys_URL, json => {
   var list_id = url.match(list_regex)[1];
   console.log("list id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"],
-    addLengthToDOM);
+    renderLengthToDOM
+  );
 });
 })(this);
