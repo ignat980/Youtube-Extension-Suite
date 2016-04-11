@@ -99,7 +99,7 @@ function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
   // I could map all the strings into duration objects then reduce, but that's O(2N) :p
   // return data.map(item => moment.duration(item)).reduce((prev, next) => {prev.add(current); return prev;});
-  // Maybe I could use generators...
+  // Maybe I could use generators... does javascript have generators?
   return data.reduce((previous, current) => {
     duration = previous.contentDetails ? moment.duration(previous.contentDetails.duration) : previous;
     duration.add(moment.duration(current.contentDetails.duration));
@@ -157,6 +157,7 @@ function getPlaylistLength(playlist_id, key, callback) {
   var totalResults;
   var token;      // Next page token
   var video_ids;  // Array of video id's
+  var durations = [];
   // testingEtag("https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=LLAvfgOfl5FKeWrIib2BJLvw&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=AIzaSyBMtCaMRDdNsOrIuc6VKcIJveKMmpIHsbk&pageToken=CMgBEAA",
   //  '"q5k97EMVGxODeKcDgp8gnMu79wM/B37sFh9_yWmCBU2S9mcVBmN90_Q"', r => {
   //    console.log("Testing etag response:", r);
@@ -175,7 +176,7 @@ function getPlaylistLength(playlist_id, key, callback) {
         // If this is the first pass, set the total results and total index to iterate over
         if (first_time) {
           totalResults = res.pageInfo.totalResults;
-          looper.length = (totalResults < 250 ? Math.ceil(totalResults/50) : 5);
+          looper.length = Math.ceil(totalResults/50);//(totalResults < 250 ? Math.ceil(totalResults/50) : 5);
           console.log("Looping " + looper.length + " times");
         };
         // Convert response into video ids
@@ -185,10 +186,8 @@ function getPlaylistLength(playlist_id, key, callback) {
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Videos response:", videos);
           setLengthInDOMWith(document.createTextNode(total + "/" + totalResults), (first_time ? -1 : 1));
-          if (length) {videos.items.push({contentDetails:{duration:length}})};
-          length = formatDuration(sumLengthsIntoDuration(videos.items),
-                   document.location.pathname === "/playlist" ? "long" : "short");
           looper.loop();
+          durations = durations.concat(videos.items)
         }, err => {
           console.error(err);
         }); //Close Videos call
@@ -198,6 +197,8 @@ function getPlaylistLength(playlist_id, key, callback) {
     },
     'callback': () => {
       console.log("Finished requesting");
+      length = formatDuration(sumLengthsIntoDuration(durations),
+               document.location.pathname === "/playlist" ? "long" : "short");
       callback(length);
     }
   }); //Close Async loop
