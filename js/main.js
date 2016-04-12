@@ -77,7 +77,7 @@ function asyncJsonGET(url, callback, errorCallback) {
  * @source - http://stackoverflow.com/a/34579496/3923022
  */
 
-function readTextFile(file, callback) {
+function readJsonFile(file, callback) {
   var raw_file = new XMLHttpRequest();
   raw_file.overrideMimeType("application/json");
   raw_file.open("GET", file, true);
@@ -158,6 +158,7 @@ function getPlaylistLength(playlist_id, key, callback) {
   var token;      // Next page token
   var video_ids;  // Array of video id's
   var durations = [];
+  // var pageTokens = []; //Used to get page tokens
   // testingEtag("https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=LLAvfgOfl5FKeWrIib2BJLvw&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken&key=AIzaSyBMtCaMRDdNsOrIuc6VKcIJveKMmpIHsbk&pageToken=CMgBEAA",
   //  '"q5k97EMVGxODeKcDgp8gnMu79wM/B37sFh9_yWmCBU2S9mcVBmN90_Q"', r => {
   //    console.log("Testing etag response:", r);
@@ -173,10 +174,11 @@ function getPlaylistLength(playlist_id, key, callback) {
       asyncJsonGET(playlist_api_url.format(playlist_id, (first_time ? "%2CpageInfo%2FtotalResults" : "")) + (token ? "&pageToken=" + token : ""), res => {
         console.log("Next 50 Playlist Items:", res);
         token = res.nextPageToken;
+        // pageTokens.push(token);
         // If this is the first pass, set the total results and total index to iterate over
         if (first_time) {
           totalResults = res.pageInfo.totalResults;
-          looper.length = Math.ceil(totalResults/50);//(totalResults < 250 ? Math.ceil(totalResults/50) : 5);
+          looper.length = Math.ceil(totalResults/50);//(totalResults < 250 ? Math.ceil(totalResults/50) : 5); //Number of requests to make
           console.log("Looping " + looper.length + " times");
         };
         // Convert response into video ids
@@ -186,8 +188,9 @@ function getPlaylistLength(playlist_id, key, callback) {
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Videos response:", videos);
           setLengthInDOMWith(document.createTextNode(total + "/" + totalResults), 1);
+          // I would concat after loop, but this breaks the case when there is only one iteration because callback gets called right away
+          durations = durations.concat(videos.items);
           looper.loop();
-          durations = durations.concat(videos.items)
         }, err => {
           console.error(err);
         }); //Close Videos call
@@ -199,6 +202,7 @@ function getPlaylistLength(playlist_id, key, callback) {
       console.log("Finished requesting");
       length = formatDuration(sumLengthsIntoDuration(durations),
                document.location.pathname === "/playlist" ? "long" : "short");
+      // console.log(pageTokens);
       callback(length);
     }
   }); //Close Async loop
@@ -328,7 +332,8 @@ document.addEventListener('DOMContentLoaded', main);
  */
 addFormatStringFunction()
 var keys_URL = chrome.extension.getURL("keys.json");
-readTextFile(keys_URL, json => {
+var tokens_URL = chrome.extension.getURL("pageTokens.json")
+readJsonFile(keys_URL, json => {
   var keys = JSON.parse(json);
   var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
   var url = document.location.href;
@@ -338,4 +343,5 @@ readTextFile(keys_URL, json => {
     renderLengthToDOM
   );
 });
+
 })(this);
