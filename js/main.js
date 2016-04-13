@@ -233,8 +233,8 @@ function renderLengthToDOM(length) {
   if (document.readyState === "interactive" || document.readyState === "complete") {
     DOMLoadedHandler();
   } else {
-    console.log("Removing main, adding length");
-    document.removeEventListener('DOMContentLoaded', main);
+    console.log("Don't need to add loader since length is processed");
+    document.removeEventListener('DOMContentLoaded', addLoader);
     document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
   };
 };
@@ -304,6 +304,7 @@ function getPlaylistLength(pl_id, key, callback) {
     // Do all the calls to the entire playlist, paginated to 50 items.
     // page tokens are always the same for different playlists when requesting 50 playlist items at a time
     var pages = Math.ceil(res.pageInfo.totalResults/50) //How many requests to make
+    console.log("There are", pages, "pages to request");
     var async_i = 0 //Track the amount of async calls
     for (var i = 0; i < pages; i++) {
       asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
@@ -316,7 +317,9 @@ function getPlaylistLength(pl_id, key, callback) {
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Video repsonse:", videos);
           // Render videos processed so far
-          setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults), 1);
+          if (document.readyState === "interactive" || document.readyState === "complete") {
+            setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults), 1);
+          }
           durations = durations.concat(videos.items);
           // If this is the last page, sum all durations together and return to the callback
           console.log("Page", async_i, "and total pages is", pages);
@@ -346,14 +349,14 @@ var spinner = document.createElement('span');
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
 
-// Main function, run on DOM load
-function main() {
+// Add a loader, run on DOM load
+function addLoader() {
   console.log("Dom loaded");
-  document.removeEventListener('DOMContentLoaded', main);
+  document.removeEventListener('DOMContentLoaded', addLoader);
   setLengthInDOMWith(spinner, 0);
-  console.log("Main ran, loader added");
+  console.log("Added a loader");
 };
-document.addEventListener('DOMContentLoaded', main);
+document.addEventListener('DOMContentLoaded', addLoader);
 
 addFormatStringFunction()
 var keys_URL = chrome.extension.getURL("keys.json");
