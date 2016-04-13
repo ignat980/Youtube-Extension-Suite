@@ -90,7 +90,17 @@ function readJsonFile(file, callback) {
   raw_file.send(null);
 };
 
-
+/**
+ * Runs an external script
+ *
+ * @param {string} script - The filepath to the script to be run
+ */
+function addLoader(script) {
+  var script_element = document.createElement('script');
+  script_element.type = 'text/javascript';
+  script_element.src = chrome.extension.getURL(script);
+  document.head.appendChild(spinner_script);
+};
 
 
 /*#### DURATION METHODS ####*/
@@ -194,9 +204,9 @@ function setLengthInDOMWith(element, index) {
   } else {
     length_li.appendChild(element);
   };
-  var playlistDetails = getPlaylistDetails();
-  if (!playlistDetails.contains(length_li)) {
-    playlistDetails.appendChild(length_li);
+  var playlist_details = getPlaylistDetails();
+  if (!playlist_details.contains(length_li)) {
+    playlist_details.appendChild(length_li);
   };
 }
 
