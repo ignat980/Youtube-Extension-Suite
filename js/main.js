@@ -305,6 +305,9 @@ function getPlaylistLength(pl_id, key, callback) {
     // page tokens are always the same for different playlists when requesting 50 playlist items at a time
     var pages = Math.ceil(res.pageInfo.totalResults/50) //How many requests to make
     console.log("There are", pages, "pages to request");
+    if (document.readyState === "interactive" || document.readyState === "complete") {
+      setLengthInDOMWith(document.createTextNode(0 + "/" + res.pageInfo.totalResults), 1);
+    }
     var async_i = 0 //Track the amount of async calls
     for (var i = 0; i < pages; i++) {
       asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
