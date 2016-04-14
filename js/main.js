@@ -163,18 +163,26 @@ function formatDuration(duration, format_string) {
 
 
 /**
- * Finds or creates the element for displaying the length
+ * Gets the element for displaying the length
  *
  * @returns: {Node} - a <li> element for displaying the length
  */
 function getLengthDetail() {
-  var length_li = document.getElementById('pl-detail-length');
-  if (!length_li) {
-    length_li = document.createElement('li');
-    length_li.setAttribute('id','pl-detail-length');
-  };
+  var length_li = length_detail_element || document.getElementById('pl-detail-length') || createLengthDetail();
+  length_detail_element = length_li
   return length_li;
 };
+
+/**
+ * Creates the element for displaying the length
+ *
+ * @returns: {Node} - a <li> element for displaying the length
+ */
+function createLengthDetail() {
+  li = document.createElement('li');
+  li.setAttribute('id','pl-detail-length');
+  return li
+}
 
 /**
  * Finds the element for the playlist details
@@ -182,12 +190,16 @@ function getLengthDetail() {
  * @returns: {Node} - a <ul> element on the page that displays details for a playlist
  */
 function getPlaylistDetails() {
-  var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
-  if (playlist_details.length === 0) {
-    playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+  if (playlist_details_element) {
+    return playlist_details_element;
+  } else {
+    var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
+    if (playlist_details.length === 0) {
+      playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+    };
+    console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
+    return playlist_details_element = playlist_details[0];
   };
-  console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
-  return playlist_details[0];
 };
 
 /**
@@ -198,7 +210,7 @@ function getPlaylistDetails() {
  */
 function setLengthInDOMWith(element, index) {
   length_li = getLengthDetail();
-  console.log("Length Detail:", length_li, "Index:", index);
+  console.log("Setting", element, "into details at Index", index);
   if (index < length_li.childNodes.length) {
     length_li.replaceChild(element, length_li.childNodes[index]);
   } else {
@@ -287,14 +299,13 @@ function getPlaylistLength(pl_id, key, callback) {
   // Api url to get video id's from playlistItems
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_query = "?part=contentDetails&maxResults=50"
-  var pl_api_params = "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken";
+  var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
   var pl_api_key = "&key=" + key;
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
-  "?part=contentDetails&id={0}&fields=etag%2Citems%2FcontentDetails%2Fduration&key=" + key;
+  "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
   var length;     // Rendered length
   var total = 0;  // Current videos processed
-  var totalResults;
   var token;      // Next page token
   var video_ids;  // Array of video id's
   var durations = [];
@@ -311,15 +322,15 @@ function getPlaylistLength(pl_id, key, callback) {
     var async_i = 0 //Track the amount of async calls
     for (var i = 0; i < pages; i++) {
       asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
-        console.log("Next 50 Playlist Items:", res);
+        console.log("Next 50 Playlist Items:", pl_res);
         // Convert response into a list of video id's
         video_ids = pl_res.items.map(item => item.contentDetails.videoId);
         // Keep track of videos processed
-        total += video_ids.length;
         // Call to /videos
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Video repsonse:", videos);
           // Render videos processed so far
+          total += video_ids.length;
           if (document.readyState === "interactive" || document.readyState === "complete") {
             setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults), 1);
           }
@@ -351,15 +362,27 @@ function getPlaylistLength(pl_id, key, callback) {
 var spinner = document.createElement('span');
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
+var length_detail_element;
+var playlist_details_element;
+var observer = new MutationObserver(function(mutations) {
+  mutations.forEach(mutation => {
+    if (mutation.target.className === 'pl-header-details' || mutation.target.id === 'pl-detail-length') {
+      console.log(mutation);
+      if (!mutation.target.contains(spinner)) {
+        playlist_details_element = mutation.target
+        flag = false
+        length_li = createLengthDetail()
+        length_li.appendChild(spinner)
+        playlist_details_element.appendChild(length_li);
+        console.log("Added a loader");
+        observer.disconnect()
+      }
+    }
+  });
+});
 
-// Add a loader, run on DOM load
-function addLoader() {
-  console.log("Dom loaded");
-  document.removeEventListener('DOMContentLoaded', addLoader);
-  setLengthInDOMWith(spinner, 0);
-  console.log("Added a loader");
-};
-document.addEventListener('DOMContentLoaded', addLoader);
+var config = {childList: true, subtree: true};
+observer.observe(document, config);
 
 addFormatStringFunction()
 var keys_URL = chrome.extension.getURL("keys.json");
