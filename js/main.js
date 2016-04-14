@@ -20,9 +20,10 @@ function addFormatStringFunction() {
 /**
  * Runs a for loop asynchronously, call the funtion passed to your loop when you want the loop to run again
  *
- * @param: {object} o - a loop object that contains a length property for how many times to iterate,
- *                      a loop property which is the iteration body,
- *                      a callback property that gets called at the end of the for loop
+ * @param: {object} o - an object that has
+ *                        a 'length' property for how many times to iterate,
+ *                        a 'loop' property which is the iteration body,
+ *                        a 'callback' property that gets called at the end of the for loop
  * @source https://stackoverflow.com/a/7654602/3923022
  */
 var AsyncLooper = function(o) {
@@ -116,9 +117,6 @@ function addLoader(script) {
  */
 function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
-  // I could map all the strings into duration objects then reduce, but that's O(2N) :p
-  // return data.map(item => moment.duration(item)).reduce((prev, next) => {prev.add(current); return prev;});
-  // Maybe I could use generators... does javascript have generators?
   return data.reduce((previous, current) => {
     duration = previous.contentDetails ? moment.duration(previous.contentDetails.duration) : previous;
     duration.add(moment.duration(current.contentDetails.duration));
@@ -254,10 +252,6 @@ function renderLengthToDOM(length) {
 function testingEtag(url, etag, callback) {
   var x = new XMLHttpRequest();
   x.open("GET", url);
-  // Format of etag should be exactly like
-  // "q5k97EMVGxODeKcDgp8gnMu79wM/yuXnADNEaHjLlGZ9sRsVjutAOEM"
-  // So the etag in a js string would look like
-  // "\"q5k97EMVGxODeKcDgp8gnMu79wM/yuXnADNEaHjLlGZ9sRsVjutAOEM\""
   x.setRequestHeader("If-None-Match", etag)
   x.responseType = 'json';
   x.onload = function() {
@@ -359,44 +353,49 @@ function getPlaylistLength(pl_id, key, callback) {
 /**
  * Run on script load
  */
-var spinner = document.createElement('span');
+console.log('Script running');
+var spinner = document.createElement('span'); //An animated gif used to show the user that something is loading
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
-var length_detail_element;
-var playlist_details_element;
+var length_detail_element; //The element that contains the text for displaying info about the playlist length
+var playlist_details_element; //The element that contains the details about a playlist
+//Watch for changes to the DOM while it is loading
 var observer = new MutationObserver(function(mutations) {
   mutations.forEach(mutation => {
-    if (mutation.target.className === 'pl-header-details' || mutation.target.id === 'pl-detail-length') {
+    //If the playlist details node is loaded, add the loader gif
+    if (mutation.target.className === 'pl-header-details' || mutation.target.className === 'playlist-details' || mutation.target.id === 'pl-detail-length') {
       console.log(mutation);
       if (!mutation.target.contains(spinner)) {
         playlist_details_element = mutation.target
-        flag = false
         length_li = createLengthDetail()
         length_li.appendChild(spinner)
         playlist_details_element.appendChild(length_li);
-        console.log("Added a loader");
+        console.log("Added loader");
         observer.disconnect()
       }
     }
   });
 });
-
+//Start the observer
 var config = {childList: true, subtree: true};
 observer.observe(document, config);
 
-addFormatStringFunction()
+addFormatStringFunction() //Add .format() method to strings
 var keys_URL = chrome.extension.getURL("keys.json");
 var tokens_URL = chrome.extension.getURL("pageTokens.json")
+//Parse page tokens, used to optimize getting requests
 readJsonFile(tokens_URL, json => {
   console.log("Page Tokens read");
   pageTokens = JSON.parse(json)["pageTokens"];
 });
+//Read the private keys file, the key is used in the request to get playlist length data
 readJsonFile(keys_URL, json => {
   var keys = JSON.parse(json);
+  //This regex gets the playlist id
   var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
   var url = document.location.href;
   var list_id = url.match(list_regex)[1];
-  console.log("list id:",list_id);
+  console.log("Playlist id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"],
     renderLengthToDOM
   );
