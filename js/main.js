@@ -20,9 +20,10 @@ function addFormatStringFunction() {
 /**
  * Runs a for loop asynchronously, call the funtion passed to your loop when you want the loop to run again
  *
- * @param: {object} o - a loop object that contains a length property for how many times to iterate,
- *                      a loop property which is the iteration body,
- *                      a callback property that gets called at the end of the for loop
+ * @param: {object} o - an object that has
+ *                        a 'length' property for how many times to iterate,
+ *                        a 'loop' property which is the iteration body,
+ *                        a 'callback' property that gets called at the end of the for loop
  * @source https://stackoverflow.com/a/7654602/3923022
  */
 var AsyncLooper = function(o) {
@@ -116,9 +117,6 @@ function addLoader(script) {
  */
 function sumLengthsIntoDuration(data) {
   console.log("Summing together strings");
-  // I could map all the strings into duration objects then reduce, but that's O(2N) :p
-  // return data.map(item => moment.duration(item)).reduce((prev, next) => {prev.add(current); return prev;});
-  // Maybe I could use generators... does javascript have generators?
   return data.reduce((previous, current) => {
     duration = previous.contentDetails ? moment.duration(previous.contentDetails.duration) : previous;
     duration.add(moment.duration(current.contentDetails.duration));
@@ -163,18 +161,26 @@ function formatDuration(duration, format_string) {
 
 
 /**
- * Finds or creates the element for displaying the length
+ * Gets the element for displaying the length
  *
  * @returns: {Node} - a <li> element for displaying the length
  */
 function getLengthDetail() {
-  var length_li = document.getElementById('pl-detail-length');
-  if (!length_li) {
-    length_li = document.createElement('li');
-    length_li.setAttribute('id','pl-detail-length');
-  };
+  var length_li = length_detail_element || document.getElementById('pl-detail-length') || createLengthDetail();
+  length_detail_element = length_li
   return length_li;
 };
+
+/**
+ * Creates the element for displaying the length
+ *
+ * @returns: {Node} - a <li> element for displaying the length
+ */
+function createLengthDetail() {
+  li = document.createElement('li');
+  li.setAttribute('id','pl-detail-length');
+  return li
+}
 
 /**
  * Finds the element for the playlist details
@@ -182,12 +188,16 @@ function getLengthDetail() {
  * @returns: {Node} - a <ul> element on the page that displays details for a playlist
  */
 function getPlaylistDetails() {
-  var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
-  if (playlist_details.length === 0) {
-    playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+  if (playlist_details_element) {
+    return playlist_details_element;
+  } else {
+    var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
+    if (playlist_details.length === 0) {
+      playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
+    };
+    console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
+    return playlist_details_element = playlist_details[0];
   };
-  console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
-  return playlist_details[0];
 };
 
 /**
@@ -198,7 +208,7 @@ function getPlaylistDetails() {
  */
 function setLengthInDOMWith(element, index) {
   length_li = getLengthDetail();
-  console.log("Length Detail:", length_li, "Index:", index);
+  console.log("Setting", element, "into details at Index", index);
   if (index < length_li.childNodes.length) {
     length_li.replaceChild(element, length_li.childNodes[index]);
   } else {
@@ -242,10 +252,6 @@ function renderLengthToDOM(length) {
 function testingEtag(url, etag, callback) {
   var x = new XMLHttpRequest();
   x.open("GET", url);
-  // Format of etag should be exactly like
-  // "q5k97EMVGxODeKcDgp8gnMu79wM/yuXnADNEaHjLlGZ9sRsVjutAOEM"
-  // So the etag in a js string would look like
-  // "\"q5k97EMVGxODeKcDgp8gnMu79wM/yuXnADNEaHjLlGZ9sRsVjutAOEM\""
   x.setRequestHeader("If-None-Match", etag)
   x.responseType = 'json';
   x.onload = function() {
@@ -287,14 +293,13 @@ function getPlaylistLength(pl_id, key, callback) {
   // Api url to get video id's from playlistItems
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_query = "?part=contentDetails&maxResults=50"
-  var pl_api_params = "&fields=etag%2Citems%2FcontentDetails%2CnextPageToken%2CprevPageToken";
+  var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
   var pl_api_key = "&key=" + key;
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
-  "?part=contentDetails&id={0}&fields=etag%2Citems%2FcontentDetails%2Fduration&key=" + key;
+  "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
   var length;     // Rendered length
   var total = 0;  // Current videos processed
-  var totalResults;
   var token;      // Next page token
   var video_ids;  // Array of video id's
   var durations = [];
@@ -311,15 +316,15 @@ function getPlaylistLength(pl_id, key, callback) {
     var async_i = 0 //Track the amount of async calls
     for (var i = 0; i < pages; i++) {
       asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
-        console.log("Next 50 Playlist Items:", res);
+        console.log("Next 50 Playlist Items:", pl_res);
         // Convert response into a list of video id's
         video_ids = pl_res.items.map(item => item.contentDetails.videoId);
         // Keep track of videos processed
-        total += video_ids.length;
         // Call to /videos
         asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
           console.log("Video repsonse:", videos);
           // Render videos processed so far
+          total += video_ids.length;
           if (document.readyState === "interactive" || document.readyState === "complete") {
             setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults), 1);
           }
@@ -348,32 +353,49 @@ function getPlaylistLength(pl_id, key, callback) {
 /**
  * Run on script load
  */
-var spinner = document.createElement('span');
+console.log('Script running');
+var spinner = document.createElement('span'); //An animated gif used to show the user that something is loading
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
+var length_detail_element; //The element that contains the text for displaying info about the playlist length
+var playlist_details_element; //The element that contains the details about a playlist
+//Watch for changes to the DOM while it is loading
+var observer = new MutationObserver(function(mutations) {
+  mutations.forEach(mutation => {
+    //If the playlist details node is loaded, add the loader gif
+    if (mutation.target.className === 'pl-header-details' || mutation.target.className === 'playlist-details' || mutation.target.id === 'pl-detail-length') {
+      console.log(mutation);
+      if (!mutation.target.contains(spinner)) {
+        playlist_details_element = mutation.target
+        length_li = createLengthDetail()
+        length_li.appendChild(spinner)
+        playlist_details_element.appendChild(length_li);
+        console.log("Added loader");
+        observer.disconnect()
+      }
+    }
+  });
+});
+//Start the observer
+var config = {childList: true, subtree: true};
+observer.observe(document, config);
 
-// Add a loader, run on DOM load
-function addLoader() {
-  console.log("Dom loaded");
-  document.removeEventListener('DOMContentLoaded', addLoader);
-  setLengthInDOMWith(spinner, 0);
-  console.log("Added a loader");
-};
-document.addEventListener('DOMContentLoaded', addLoader);
-
-addFormatStringFunction()
+addFormatStringFunction() //Add .format() method to strings
 var keys_URL = chrome.extension.getURL("keys.json");
 var tokens_URL = chrome.extension.getURL("pageTokens.json")
+//Parse page tokens, used to optimize getting requests
 readJsonFile(tokens_URL, json => {
   console.log("Page Tokens read");
   pageTokens = JSON.parse(json)["pageTokens"];
 });
+//Read the private keys file, the key is used in the request to get playlist length data
 readJsonFile(keys_URL, json => {
   var keys = JSON.parse(json);
+  //This regex gets the playlist id
   var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
   var url = document.location.href;
   var list_id = url.match(list_regex)[1];
-  console.log("list id:",list_id);
+  console.log("Playlist id:",list_id);
   getPlaylistLength(list_id, keys["YTDataAPIKey"],
     renderLengthToDOM
   );
