@@ -352,9 +352,11 @@ var spinner = document.createElement('span');
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
 
+var nodes = 0
 // Add a loader, run on DOM load
 function addLoader() {
   console.log("Dom loaded");
+  console.log("Nodes made:", nodes);
   document.removeEventListener('DOMContentLoaded', addLoader);
   setLengthInDOMWith(spinner, 0);
   console.log("Added a loader");
@@ -378,5 +380,18 @@ readJsonFile(keys_URL, json => {
     renderLengthToDOM
   );
 });
+
+// create an observer instance
+var observer = new MutationObserver(function(mutations) {
+  mutations.forEach(mutation => {
+    nodes += mutation.addedNodes.length - mutation.removedNodes.length
+    if (mutation.target.className === 'pl-header-details' || mutation.target.id === 'pl-detail-length') {
+      console.log(mutation);
+    }
+  });
+});
+
+var config = { childList: true, subtree: true};
+observer.observe(document, config);
 
 })(this);
