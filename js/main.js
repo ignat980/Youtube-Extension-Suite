@@ -136,16 +136,17 @@ function formatDuration(duration, format_string) {
   var length;
   if (format_string === "long") {
     format = [
+      duration.years() === 1 ? "Year" : "Years",
       duration.months() === 1 ? "Month" : "Months",
       duration.days() === 1 ? "Day" : "Days",
       duration.hours() === 1 ? "Hour" : "Hours",
       duration.minutes() === 1 ? "Minute" : "Minutes",
       duration.seconds() === 1 ? "Second" : "Seconds"
     ];
-    length = duration.format("M [" + format[0] + "] d [" + format[1] +
-    "] h [" + format[2] + "] m [" + format[3] + " and] s [" + format[4] + "]");
+    length = duration.format("y [" + format[0] + "] M [" + format[1] + "] d [" + format[2] +
+    "] h [" + format[3] + "] m [" + format[4] + " and] s [" + format[5] + "]");
   } else if (format_string === "short") {
-    length = duration.format("M[m] d[d] h:mm:ss");
+    length = duration.format("y[y] M[m] d[d] h:mm:ss");
   } else {
     length = duration.format(format_string);
   };
