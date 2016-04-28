@@ -331,8 +331,8 @@ function getPlaylistLength(pl_id, key, callback) {
           durations = durations.concat(videos.items);
           // If this is the last page, sum all durations together and return to the callback
           console.log("Page", async_i, "and total pages is", pages);
-          if (async_i === pages - 1) {
-            console.log("Finished Requesting on page", i);
+          if (async_i === pages - 1 || async_i === 65) {
+            console.log("Finished Requesting on page", async_i);
             length = formatDuration(sumLengthsIntoDuration(durations),
                      document.location.pathname === "/playlist" ? "long" : "short");
             callback(length);
