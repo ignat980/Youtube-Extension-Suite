@@ -11,8 +11,15 @@
           "128": "images/Icon128.png" },
 
   "permissions": [
-    "identity"
+    "identity",
+    "*://*.youtube.com/watch*&list*",
+    "*://*.youtube.com/playlist*"
   ],
+
+  "background": {
+    "scripts": ["js/background.js"],
+    "persistent": false
+  },
 
   "content_scripts": [
     {
@@ -31,7 +38,7 @@
   "oauth2": {
     "client_id": "940024462417-5ais2trpuo7htdvonu4ulsmoia54fnsc.apps.googleusercontent.com",
     "scopes": [
-      "*://*.youtube.com/"
+      "https://www.googleapis.com/auth/youtube.readonly"
     ]
   }
 }
