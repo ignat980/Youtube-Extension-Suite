@@ -18,3 +18,8 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Hotkeys Customization (Play/Pause, Skip, Volume, Speed, etc.)
 * Easy Playlist Creation
 * Watch Playlist in reverse order
+
+###Installation:
+*\*This is for Google Chrome\**
+1. Download the current release .crx file
+2. Navigate to chrome://extensions
