@@ -136,16 +136,17 @@ function formatDuration(duration, format_string) {
   var length;
   if (format_string === "long") {
     format = [
+      duration.years() === 1 ? "Year" : "Years",
       duration.months() === 1 ? "Month" : "Months",
       duration.days() === 1 ? "Day" : "Days",
       duration.hours() === 1 ? "Hour" : "Hours",
       duration.minutes() === 1 ? "Minute" : "Minutes",
       duration.seconds() === 1 ? "Second" : "Seconds"
     ];
-    length = duration.format("M [" + format[0] + "] d [" + format[1] +
-    "] h [" + format[2] + "] m [" + format[3] + " and] s [" + format[4] + "]");
+    length = duration.format("y [" + format[0] + "] M [" + format[1] + "] d [" + format[2] +
+    "] h [" + format[3] + "] m [" + format[4] + " and] s [" + format[5] + "]");
   } else if (format_string === "short") {
-    length = duration.format("M[m] d[d] h:mm:ss");
+    length = duration.format("y[y] M[m] d[d] h:mm:ss");
   } else {
     length = duration.format(format_string);
   };
@@ -287,14 +288,14 @@ function testingEtag(url, etag, callback) {
  * @param {string} key - The Youtube data v3 api key
  * @param {function(string)} callback - called when the length of a Youtube Playlist is parsed
  */
-function getPlaylistLength(pl_id, key, callback) {
+function getPlaylistLength(pl_id, key, callback, oauth) {
   console.log("Getting playlist length");
   // TODO: cache etag to quickly return playlist length !important
   // Api url to get video id's from playlistItems
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_query = "?part=contentDetails&maxResults=50"
   var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
-  var pl_api_key = "&key=" + key;
+  var pl_api_key = "&key=" + key + (oauth ? "&access_token=" + oauth : "");
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
@@ -332,7 +333,7 @@ function getPlaylistLength(pl_id, key, callback) {
           // If this is the last page, sum all durations together and return to the callback
           console.log("Page", async_i, "and total pages is", pages);
           if (async_i === pages - 1) {
-            console.log("Finished Requesting on page", i);
+            console.log("Finished Requesting on page", async_i);
             length = formatDuration(sumLengthsIntoDuration(durations),
                      document.location.pathname === "/playlist" ? "long" : "short");
             callback(length);
@@ -347,13 +348,46 @@ function getPlaylistLength(pl_id, key, callback) {
     } //Close for loop
   }, err => {
     console.error(err);
+    if (err.code === 403 && flag == undefined) {
+      flag = false
+      console.log("Used token at", new Date().getTime());
+      console.log("Token:", token);
+      getPlaylistLength(pl_id, key, callback, token);
+    };
   }); //Close get to playlist total video count
 };
-
+var flag
 /**
  * Run on script load
  */
 console.log('Script running');
+chrome.runtime.sendMessage({name: 'setupToken'});
+var token;
+var timeout;
+function assignToken(){
+  chrome.runtime.sendMessage({name: 'getAuthToken'}, function(res) {
+    token = res;
+    console.log("Assigning token on init:", token);
+    if (token == undefined) {
+      timeout = setTimeout(assignToken, 100);
+    } else {
+      clearTimeout(timeout);
+      //Read the private keys file, the key is used in the request to get playlist length data
+      readJsonFile(keys_URL, json => {
+        var keys = JSON.parse(json);
+        //This regex gets the playlist id
+        var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
+        var url = document.location.href;
+        var list_id = url.match(list_regex)[1];
+        console.log("Playlist id:",list_id);
+        getPlaylistLength(list_id, keys["YTDataAPIKey"],
+          renderLengthToDOM
+        , token);
+      });
+    }
+  });
+};
+timeout = setTimeout(assignToken, 100);
 var spinner = document.createElement('span'); //An animated gif used to show the user that something is loading
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');
@@ -387,18 +421,6 @@ var tokens_URL = chrome.extension.getURL("pageTokens.json")
 readJsonFile(tokens_URL, json => {
   console.log("Page Tokens read");
   pageTokens = JSON.parse(json)["pageTokens"];
-});
-//Read the private keys file, the key is used in the request to get playlist length data
-readJsonFile(keys_URL, json => {
-  var keys = JSON.parse(json);
-  //This regex gets the playlist id
-  var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
-  var url = document.location.href;
-  var list_id = url.match(list_regex)[1];
-  console.log("Playlist id:",list_id);
-  getPlaylistLength(list_id, keys["YTDataAPIKey"],
-    renderLengthToDOM
-  );
 });
 
 })(this);

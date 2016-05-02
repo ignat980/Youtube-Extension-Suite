@@ -1,14 +1,25 @@
 {
+  "author": "Ignat Remizov",
   "manifest_version": 2,
-  "name": "Playlist Length",
+  "name": "YouTube Extension Suite",
   "version": "0.0.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0pj6Z8vYLAIUHpJxYYS2HYc1nV8XJD5crFiW9Ts1pILzkyxGtLj+bw3caBP0Ys94PRIgwxk9UXRNMKHZ63BvMYbhNIYiqpva4wqiAmjghBkOdQ2c3SmDax8IS7vDDv2k5uctsGTuujQ5D6Q+gfyH0ThYjGnxF/fBDWeMgmuR4cpeWqFbIJOeZ0Nca5gq98PQ/LSxvzYJFh7gVQpCM3Fo18PzttGGOG2p56YKqseC49k+iGt8IyBr5Ze0fJJMA0erK5jfNaOZTPUmUy7iWmM7M3WZws8ue6uklcrfoi+RjmVqMReP5JqzMEsBuKiVHJ3SuIuwlb/9tzxOsm0LHg4lGwIDAQAB",
 
   "description": "This extesnion will list the length of time it takes to watch an entire youtube playlist",
   "icons": { "16": "images/Icon16.png",
            "48": "images/Icon48.png",
           "128": "images/Icon128.png" },
 
-  "author": "Ignat Remizov",
+  "permissions": [
+    "identity",
+    "*://*.youtube.com/watch*&list*",
+    "*://*.youtube.com/playlist*"
+  ],
+
+  "background": {
+    "scripts": ["js/background.js"],
+    "persistent": false
+  },
 
   "content_scripts": [
     {
@@ -22,5 +33,12 @@
     "keys.json",
     "pageTokens.json",
     "js/*.js"
-  ]
+  ],
+
+  "oauth2": {
+    "client_id": "940024462417-5ais2trpuo7htdvonu4ulsmoia54fnsc.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/youtube.readonly"
+    ]
+  }
 }
