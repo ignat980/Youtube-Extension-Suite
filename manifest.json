@@ -12,7 +12,7 @@
 
   "permissions": [
     "identity",
-    "*://*.youtube.com/watch*&list*",
+    "*://*.youtube.com/watch*list*",
     "*://*.youtube.com/playlist*"
   ],
 
