@@ -10,7 +10,36 @@
  */
 function getPlaylistLength(pl_id, key, callback, oauth_token) {
   console.log("Getting playlist length");
-  // TODO: cache etag to quickly return playlist length !important
+  // TODO: cache some kind of data to quickly return playlist length !important (Can't use etags - /playlistItems always returns a new etag)
+  /**
+  I figured out how to cache the data!!! :D
+  You can make a call to /playlists to get both the total count of items in a playlist, and the etag changes
+  if only the playlist changed. A call to /playlistItems always generates a new etag (???) but whatever.
+  So, these are the steps:
+  1. get playlist id
+  2. lookup etag in cache by playlist id ###Lookup Cache Step###
+  3. call /playlists with the etag in the `If-None-Match` header (should work even if etag is empty)
+  4a. if the api returns 304, use cached playlist length
+  4b. if the api returns 200, save the new etag in cache
+  You can do more caching!
+  5. call /playlistItems with playlist id (with all the pageTokens)
+  6. lookup each videoId in cache to get video length ###Lookup Cache Step### (TODO each video length probably doesn't change, although it is a possibilty)
+  6a. if videoId length not found, add videoId to a `videos` array
+  6b. if videoId length is found, add to a `lengths` array
+  7. call /videos with all the video id's up to 50 elements
+    (Could be done right after /playlistItems call or when all calls are done,
+    TODO I think it's ok to be lazy right now and do it right after each call)
+    (Also you can call with etags and save that to check if the length hasn't changed,
+    but then you would have to call the api per each video. I dunno, but I think there is some optimzation hiding here)
+  7. (continued) For each video in the response,
+    save the length to cache by each video id as key ###Save Cache Step###
+    add length to a `lengths` array
+  8. Reduce `lengths` array into a moment.js duration object
+  9. Save a formatted string of the length of the playlist to cache by etag as key ###Save Cache Step###
+  9. Return a formatted string of the length of the playlist
+
+
+  */
   // Api url to get video id's from playlistItems
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_query = "?part=contentDetails&maxResults=50"
@@ -21,7 +50,6 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
   "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
   var length;     // Rendered length
   var total = 0;  // Current videos processed
-  // var page_token; // Next page token
   var video_ids;  // Array of video id's
   var durations = [];
 
