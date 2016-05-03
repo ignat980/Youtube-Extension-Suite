@@ -29,6 +29,7 @@
          "js/vendor/moment-duration-format.js",
          "js/helpers.js",
          "js/duration_helpers.js",
+         "js/dom_helpers.js",
          "js/main.js"
        ],
        "run_at": "document_start"

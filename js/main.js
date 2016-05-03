@@ -1,127 +1,6 @@
 // Copyright (c) 2016 Ignat Remizov. All rights reserved.
 ;(function(root, undefined) {
 
-/*#### DOM Manipulation methods####*/
-/**
- * Gets the element for displaying the length
- *
- * @returns: {Node} - a <li> element for displaying the length
- */
-function getLengthDetail() {
-  var length_li = length_detail_element || document.getElementById('pl-detail-length') || createLengthDetail();
-  length_detail_element = length_li
-  return length_li;
-};
-
-/**
- * Creates the element for displaying the length
- *
- * @returns: {Node} - a <li> element for displaying the length
- */
-function createLengthDetail() {
-  li = document.createElement('li');
-  li.setAttribute('id','pl-detail-length');
-  return li
-}
-
-/**
- * Finds the element for the playlist details
- *
- * @returns: {Node} - a <ul> element on the page that displays details for a playlist
- */
-function getPlaylistDetails() {
-  if (playlist_details_element) {
-    return playlist_details_element;
-  } else {
-    var playlist_details = document.getElementsByClassName('pl-header-details'); //youtube.com/playlist
-    if (playlist_details.length === 0) {
-      playlist_details = document.getElementsByClassName('playlist-details'); //youtube.com/watch*&list*
-    };
-    console.assert(playlist_details.length !== 0, 'Playlist not found in DOM');
-    return playlist_details_element = playlist_details[0];
-  };
-};
-
-/**
- * Resets the length element with the element passed into it
- *
- * @param: {Node} element - The element to be setAttribute
- * @param: {int} index - An index for which child to set, out of bounds index appends to the end
- */
-function setLengthInDOMWith(element, index) {
-  length_li = getLengthDetail();
-  console.log("Setting", element, "into details at Index", index);
-  if (index < length_li.childNodes.length) {
-    length_li.replaceChild(element, length_li.childNodes[index]);
-  } else {
-    length_li.appendChild(element);
-  };
-  var playlist_details = getPlaylistDetails();
-  if (!playlist_details.contains(length_li)) {
-    playlist_details.appendChild(length_li);
-  };
-}
-
-function removeLoader() {
-  var loader = document.getElementById('pl-loader-gif');
-  if (loader) {
-    console.log("Removing loader");
-    loader.remove();
-  };
-}
-
-/**
- * Renders a playlist length to the DOM
- *
- * @param {string} length - A readable length of the playlist
- */
-function renderLengthToDOM(length) {
-  function DOMLoadedHandler(){
-    console.log("Adding length:", length);
-    removeLoader();
-    setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
-    document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
-  };
-  if (document.readyState === "interactive" || document.readyState === "complete") {
-    DOMLoadedHandler();
-  } else {
-    console.log("Don't need to add loader since length is processed");
-    document.removeEventListener('DOMContentLoaded', addLoader);
-    document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
-  };
-};
-
-function testingEtag(url, etag, callback) {
-  var x = new XMLHttpRequest();
-  x.open("GET", url);
-  x.setRequestHeader("If-None-Match", etag)
-  x.responseType = 'json';
-  x.onload = function() {
-    if (x.status === 400 || x.status === 404) {
-      console.error(x);
-    } else if (!x.response) {
-      console.error("No response.");
-    } else if (x.response.error) {
-      console.error(x.response.error);
-    } else {
-      console.log("Response headers:", x.getAllResponseHeaders());
-      callback(x);
-    };
-  };
-  x.onerror = function() {
-    errorCallback('Network error.');
-  };
-  x.send(null);
-}
-
-
-
-
-/*#### MAIN METHODS ####*/
-
-
-
-
 /**
  * Calls the Youtube API to read the length of the current playlist
  *
@@ -239,7 +118,6 @@ var observer = new MutationObserver(function(mutations) {
 var config = {childList: true, subtree: true};
 observer.observe(document, config);
 
-addFormatStringFunction() //Add .format() method to strings
 var keys_URL = chrome.extension.getURL("keys.json");
 var tokens_URL = chrome.extension.getURL("pageTokens.json")
 //Parse page tokens, used to optimize getting requests
