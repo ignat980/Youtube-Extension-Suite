@@ -2,7 +2,7 @@
   "author": "Ignat Remizov",
   "manifest_version": 2,
   "name": "YouTube Extension Suite",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0pj6Z8vYLAIUHpJxYYS2HYc1nV8XJD5crFiW9Ts1pILzkyxGtLj+bw3caBP0Ys94PRIgwxk9UXRNMKHZ63BvMYbhNIYiqpva4wqiAmjghBkOdQ2c3SmDax8IS7vDDv2k5uctsGTuujQ5D6Q+gfyH0ThYjGnxF/fBDWeMgmuR4cpeWqFbIJOeZ0Nca5gq98PQ/LSxvzYJFh7gVQpCM3Fo18PzttGGOG2p56YKqseC49k+iGt8IyBr5Ze0fJJMA0erK5jfNaOZTPUmUy7iWmM7M3WZws8ue6uklcrfoi+RjmVqMReP5JqzMEsBuKiVHJ3SuIuwlb/9tzxOsm0LHg4lGwIDAQAB",
 
   "description": "This extesnion will list the length of time it takes to watch an entire youtube playlist",
@@ -12,7 +12,7 @@
 
   "permissions": [
     "identity",
-    "*://*.youtube.com/watch*&list*",
+    "*://*.youtube.com/watch*list*",
     "*://*.youtube.com/playlist*"
   ],
 
@@ -23,7 +23,7 @@
 
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/watch*&list*", "*://*.youtube.com/playlist*"],
+      "matches": ["*://*.youtube.com/watch*list*", "*://*.youtube.com/playlist*"],
        "js": ["js/vendor/moment.js", "js/vendor/moment-duration-format.js", "js/main.js"],
        "run_at": "document_start"
     }

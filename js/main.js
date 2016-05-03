@@ -288,20 +288,20 @@ function testingEtag(url, etag, callback) {
  * @param {string} key - The Youtube data v3 api key
  * @param {function(string)} callback - called when the length of a Youtube Playlist is parsed
  */
-function getPlaylistLength(pl_id, key, callback, oauth) {
+function getPlaylistLength(pl_id, key, callback, oauth_token) {
   console.log("Getting playlist length");
   // TODO: cache etag to quickly return playlist length !important
   // Api url to get video id's from playlistItems
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_query = "?part=contentDetails&maxResults=50"
   var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
-  var pl_api_key = "&key=" + key + (oauth ? "&access_token=" + oauth : "");
+  var pl_api_key = "&key=" + key + (oauth_token ? "&access_token=" + oauth_token : "");
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
   var length;     // Rendered length
   var total = 0;  // Current videos processed
-  var token;      // Next page token
+  // var page_token; // Next page token
   var video_ids;  // Array of video id's
   var durations = [];
 
@@ -348,46 +348,36 @@ function getPlaylistLength(pl_id, key, callback, oauth) {
     } //Close for loop
   }, err => {
     console.error(err);
-    if (err.code === 403 && flag == undefined) {
-      flag = false
+    if (err.code === 403 && run_once == undefined) {
+      run_once = false
       console.log("Used token at", new Date().getTime());
-      console.log("Token:", token);
-      getPlaylistLength(pl_id, key, callback, token);
+      console.log("Token:", oauth_token);
+      getPlaylistLength(pl_id, key, callback, oauth_token);
     };
   }); //Close get to playlist total video count
 };
-var flag
+var run_once
 /**
  * Run on script load
  */
 console.log('Script running');
-chrome.runtime.sendMessage({name: 'setupToken'});
 var token;
-var timeout;
-function assignToken(){
-  chrome.runtime.sendMessage({name: 'getAuthToken'}, function(res) {
-    token = res;
-    console.log("Assigning token on init:", token);
-    if (token == undefined) {
-      timeout = setTimeout(assignToken, 100);
-    } else {
-      clearTimeout(timeout);
-      //Read the private keys file, the key is used in the request to get playlist length data
-      readJsonFile(keys_URL, json => {
-        var keys = JSON.parse(json);
-        //This regex gets the playlist id
-        var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
-        var url = document.location.href;
-        var list_id = url.match(list_regex)[1];
-        console.log("Playlist id:",list_id);
-        getPlaylistLength(list_id, keys["YTDataAPIKey"],
-          renderLengthToDOM
-        , token);
-      });
-    }
+chrome.runtime.sendMessage({name: 'getAuthToken'}, function(res) {
+  token = res;
+  console.log("Assigning token on init:", token);
+  //Read the private keys file, the key is used in the request to get playlist length data
+  readJsonFile(keys_URL, json => {
+    var keys = JSON.parse(json);
+    //This regex gets the playlist id
+    var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
+    var url = document.location.href;
+    var list_id = url.match(list_regex)[1];
+    console.log("Playlist id:",list_id);
+    getPlaylistLength(list_id, keys["YTDataAPIKey"],
+      renderLengthToDOM
+    , token);
   });
-};
-timeout = setTimeout(assignToken, 100);
+});
 var spinner = document.createElement('span'); //An animated gif used to show the user that something is loading
 spinner.setAttribute('class', 'yt-spinner-img  yt-sprite');
 spinner.setAttribute('id', 'pl-loader-gif');

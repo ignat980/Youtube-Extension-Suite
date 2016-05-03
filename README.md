@@ -1,4 +1,4 @@
-# Youtube Extension Suite v0.0.1
+# Youtube Extension Suite v0.1.1
 
 This is an extension for [YouTube](https://www.youtube.com). It is meant to be like the Reddit Extension Suite, like with cool options and stuff :D
 
@@ -18,3 +18,9 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Hotkeys Customization (Play/Pause, Skip, Volume, Speed, etc.)
 * Easy Playlist Creation
 * Watch Playlist in reverse order
+
+###Installation:
+*\*This is for Google Chrome\**
+1. Download the current release .crx file
+2. Navigate to chrome://extensions
+3. Drag and drop Youtube.Extension.Suite.crx into the page
