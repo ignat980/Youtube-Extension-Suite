@@ -23,3 +23,4 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 *\*This is for Google Chrome\**
 1. Download the current release .crx file
 2. Navigate to chrome://extensions
+3. Drag and drop Youtube.Extension.Suite.crx into the page
