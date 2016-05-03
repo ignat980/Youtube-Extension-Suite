@@ -41,7 +41,9 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
 
   */
   // Api url to get video id's from playlistItems
-  var pl_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
+  var pl_items_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
+  var pl_api_url = "https://www.googleapis.com/youtube/v3/playlists?part=contentDetails"
+  var pl_api_etag_param = "&fields=etag%2Citems%2FcontentDetails"
   var pl_api_query = "?part=contentDetails&maxResults=50"
   var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
   var pl_api_key = "&key=" + key + (oauth_token ? "&access_token=" + oauth_token : "");
@@ -54,17 +56,19 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
   var durations = [];
 
   // Get the number of items in the playlist
-  asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + "&fields=pageInfo%2FtotalResults" + pl_api_key, res => {
+  asyncJsonGET(pl_api_url + pl_api_etag_param + "&id=" + pl_id + pl_api_key, res => {
     // Do all the calls to the entire playlist, paginated to 50 items.
     // page tokens are always the same for different playlists when requesting 50 playlist items at a time
-    var pages = Math.ceil(res.pageInfo.totalResults/50) //How many requests to make
+    console.log("Playlist etag:", res.etag);
+    var total_results = res.items[0].contentDetails.itemCount
+    var pages = Math.ceil(total_results/50) //How many requests to make
     console.log("There are", pages, "pages to request");
     if (document.readyState === "interactive" || document.readyState === "complete") {
-      setLengthInDOMWith(document.createTextNode(0 + "/" + res.pageInfo.totalResults), 1);
+      setLengthInDOMWith(document.createTextNode(0 + "/" + total_results), 1);
     }
     var async_i = 0 //Track the amount of async calls
     for (var i = 0; i < pages; i++) {
-      asyncJsonGET(pl_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
+      asyncJsonGET(pl_items_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
         console.log("Next 50 Playlist Items:", pl_res);
         // Convert response into a list of video id's
         video_ids = pl_res.items.map(item => item.contentDetails.videoId);
@@ -75,7 +79,7 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
           // Render videos processed so far
           total += video_ids.length;
           if (document.readyState === "interactive" || document.readyState === "complete") {
-            setLengthInDOMWith(document.createTextNode(total + "/" + res.pageInfo.totalResults), 1);
+            setLengthInDOMWith(document.createTextNode(total + "/" + total_results), 1);
           }
           durations = durations.concat(videos.items);
           // If this is the last page, sum all durations together and return to the callback
