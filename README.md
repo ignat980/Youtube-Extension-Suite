@@ -18,6 +18,7 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Hotkeys Customization (Play/Pause, Skip, Volume, Speed, etc.)
 * Easy Playlist Creation
 * Watch Playlist in reverse order
+* Copy a playlist to your account
 
 ###Installation:
 *\*This is for Google Chrome\**

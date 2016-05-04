@@ -46,45 +46,28 @@
    * @param {string} url - The URL to get from
    * @param {function(Response)} callback - Called when the GET json request finishes
    * @param {function(Error)} errorCallback - Called when the request fails or returns an error
+   * @param {string} etag -
    */
-  function asyncJsonGET(url, callback, errorCallback) {
+  function asyncJsonGET(url, callback, errorCallback, etag) {
     var x = new XMLHttpRequest();
     x.open("GET", url);
-    // x.setRequestHeader("If-None-Match","etag")
+    if (etag){
+      x.setRequestHeader("If-None-Match", etag)
+    }
     x.responseType = 'json';
     x.onload = function() {
       if (x.status === 400 || x.status === 404) {
+        console.error(x);
         errorCallback(x);
+      } else if (x.status === 304) {
+        console.log("No change.");
+        callback(x)
       } else if (!x.response) {
         errorCallback("No response.");
       } else if (x.response.error) {
         errorCallback(x.response.error);
       } else {
         callback(x.response);
-      };
-    };
-    x.onerror = function() {
-      errorCallback('Network error.');
-    };
-    x.send(null);
-  };
-
-
-  function testingEtag(url, etag, callback) {
-    var x = new XMLHttpRequest();
-    x.open("GET", url);
-    x.setRequestHeader("If-None-Match", etag)
-    x.responseType = 'json';
-    x.onload = function() {
-      if (x.status === 400 || x.status === 404) {
-        console.error(x);
-      } else if (!x.response) {
-        console.error("No response.");
-      } else if (x.response.error) {
-        console.error(x.response.error);
-      } else {
-        console.log("Response headers:", x.getAllResponseHeaders());
-        callback(x);
       };
     };
     x.onerror = function() {
