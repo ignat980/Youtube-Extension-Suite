@@ -41,6 +41,9 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
 
   */
   // Api url to get video id's from playlistItems
+  chrome.storage.local.get([pl_id,(pl_id+"_val")], items => {
+    console.log(items);
+  })
   var pl_items_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
   var pl_api_url = "https://www.googleapis.com/youtube/v3/playlists?part=contentDetails"
   var pl_api_etag_param = "&fields=etag%2Citems%2FcontentDetails"
@@ -50,7 +53,6 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
   // Api url to get video durations given a bunch of video id's
   var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
   "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
-  var length;     // Rendered length
   var total = 0;  // Current videos processed
   var video_ids;  // Array of video id's
   var durations = [];
@@ -86,8 +88,15 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
           console.log("Page", async_i, "and total pages is", pages);
           if (async_i === pages - 1) {
             console.log("Finished Requesting on page", async_i);
-            length = formatDuration(sumLengthsIntoDuration(durations),
+            var duration = sumLengthsIntoDuration(durations)
+            var length = formatDuration(duration,
                      document.location.pathname === "/playlist" ? "long" : "short");
+            var set_obj = {}
+            set_obj[pl_id] = res.etag
+            set_obj[pl_id+"_val"] = duration.toISOString()
+            chrome.storage.local.set(set_obj,function(){
+              console.log("Saved the etag", set_obj[pl_id], "and value as", set_obj[pl_id+"_val"], "under id", pl_id)
+            })
             callback(length);
           }
           async_i++;

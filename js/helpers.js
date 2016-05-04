@@ -110,7 +110,6 @@
 
   root.AsyncLooper             = AsyncLooper
   root.asyncJsonGET            = asyncJsonGET
-  root.testingEtag             = testingEtag
   root.readJsonFile            = readJsonFile
   root.addLoader               = addLoader
 })(this);
