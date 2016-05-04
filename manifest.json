@@ -12,6 +12,7 @@
 
   "permissions": [
     "identity",
+    "storage",
     "*://*.youtube.com/watch*list*",
     "*://*.youtube.com/playlist*"
   ],
