@@ -40,77 +40,88 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
 
 
   */
-  // Api url to get video id's from playlistItems
-  chrome.storage.local.get([pl_id,(pl_id+"_val")], items => {
-    console.log(items);
-  })
-  var pl_items_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
-  var pl_api_url = "https://www.googleapis.com/youtube/v3/playlists?part=contentDetails"
-  var pl_api_etag_param = "&fields=etag%2Citems%2FcontentDetails"
-  var pl_api_query = "?part=contentDetails&maxResults=50"
-  var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
-  var pl_api_key = "&key=" + key + (oauth_token ? "&access_token=" + oauth_token : "");
-  // Api url to get video durations given a bunch of video id's
-  var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
-  "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
-  var total = 0;  // Current videos processed
-  var video_ids;  // Array of video id's
-  var durations = [];
+  chrome.storage.local.get([pl_id,(pl_id+"_val")], pl_cache => {
+    console.log("Returned cache:", pl_cache);
 
-  // Get the number of items in the playlist
-  asyncJsonGET(pl_api_url + pl_api_etag_param + "&id=" + pl_id + pl_api_key, res => {
-    // Do all the calls to the entire playlist, paginated to 50 items.
-    // page tokens are always the same for different playlists when requesting 50 playlist items at a time
-    console.log("Playlist etag:", res.etag);
-    var total_results = res.items[0].contentDetails.itemCount
-    var pages = Math.ceil(total_results/50) //How many requests to make
-    console.log("There are", pages, "pages to request");
-    if (document.readyState === "interactive" || document.readyState === "complete") {
-      setLengthInDOMWith(document.createTextNode(0 + "/" + total_results), 1);
-    }
-    var async_i = 0 //Track the amount of async calls
-    for (var i = 0; i < pages; i++) {
-      asyncJsonGET(pl_items_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
-        console.log("Next 50 Playlist Items:", pl_res);
-        // Convert response into a list of video id's
-        video_ids = pl_res.items.map(item => item.contentDetails.videoId);
-        // Keep track of videos processed
-        // Call to /videos
-        asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
-          console.log("Video repsonse:", videos);
-          // Render videos processed so far
-          total += video_ids.length;
-          if (document.readyState === "interactive" || document.readyState === "complete") {
-            setLengthInDOMWith(document.createTextNode(total + "/" + total_results), 1);
-          }
-          durations = durations.concat(videos.items);
-          // If this is the last page, sum all durations together and return to the callback
-          console.log("Page", async_i, "and total pages is", pages);
-          if (async_i === pages - 1) {
-            console.log("Finished Requesting on page", async_i);
-            var duration = sumLengthsIntoDuration(durations)
-            var length = formatDuration(duration,
-                     document.location.pathname === "/playlist" ? "long" : "short");
-            var set_obj = {}
-            set_obj[pl_id] = res.etag
-            set_obj[pl_id+"_val"] = duration.toISOString()
-            chrome.storage.local.set(set_obj,function(){
-              console.log("Saved the etag", set_obj[pl_id], "and value as", set_obj[pl_id+"_val"], "under id", pl_id)
-            })
-            callback(length);
-          }
-          async_i++;
+    // Api url to get video id's from playlistItems
+    var pl_items_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    var pl_api_url = "https://www.googleapis.com/youtube/v3/playlists?part=contentDetails"
+    var pl_api_etag_param = "&fields=etag%2Citems%2FcontentDetails"
+    var pl_api_query = "?part=contentDetails&maxResults=50"
+    var pl_api_params = "&fields=items%2FcontentDetails%2CnextPageToken%2CprevPageToken";
+    var pl_api_key = "&key=" + key + (oauth_token ? "&access_token=" + oauth_token : "");
+    // Api url to get video durations given a bunch of video id's
+    var videos_api_url = "https://www.googleapis.com/youtube/v3/videos" +
+    "?part=contentDetails&id={0}&fields=items%2FcontentDetails%2Fduration&key=" + key;
+    var total = 0;  // Current videos processed
+    var video_ids;  // Array of video id's
+    var durations = [];
+
+    // Get the number of items in the playlist
+    asyncJsonGET(pl_api_url + pl_api_etag_param + "&id=" + pl_id + pl_api_key, res => {
+      // Do all the calls to the entire playlist, paginated to 50 items.
+      // page tokens are always the same for different playlists when requesting 50 playlist items at a time
+      console.log("Response from /playlists:", res);
+      if (res === 304) {
+        console.log("Using saved length in cache");
+        console.log(res);
+        console.log("Playlist etag:", pl_cache[pl_id]);
+        var duration = moment.duration(pl_cache[pl_id+"_val"]);
+        callback(formatDuration(duration,
+                 (document.location.pathname === "/playlist" ? "long" : "short")));
+        return
+      }
+      console.log("Playlist etag:", res.etag);
+      var total_results = res.items[0].contentDetails.itemCount;
+      var pages = Math.ceil(total_results/50); //How many requests to make
+      console.log("There are", pages, "pages to request");
+      if (document.readyState === "interactive" || document.readyState === "complete") {
+        setLengthInDOMWith(document.createTextNode(0 + "/" + total_results), 1);
+      };
+      var async_i = 0; //Track the amount of async calls
+      for (var i = 0; i < pages; i++) {
+        asyncJsonGET(pl_items_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
+          console.log("Next 50 Playlist Items:", pl_res);
+          // Convert response into a list of video id's
+          video_ids = pl_res.items.map(item => item.contentDetails.videoId);
+          // Keep track of videos processed
+          // Call to /videos
+          asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
+            console.log("Video repsonse:", videos);
+            // Render videos processed so far
+            total += video_ids.length;
+            if (document.readyState === "interactive" || document.readyState === "complete") {
+              setLengthInDOMWith(document.createTextNode(total + "/" + total_results), 1);
+            }
+            durations = durations.concat(videos.items);
+            // If this is the last page, sum all durations together and return to the callback
+            console.log("Page", async_i, "and total pages is", pages);
+            if (async_i === pages - 1) {
+              console.log("Finished Requesting on page", async_i);
+              var duration = sumLengthsIntoDuration(durations)
+              var length = formatDuration(duration,
+                       document.location.pathname === "/playlist" ? "long" : "short");
+              var set_obj = {}
+              set_obj[pl_id] = res.etag
+              set_obj[pl_id+"_val"] = duration.toISOString()
+              chrome.storage.local.set(set_obj,function(){
+                console.log("Saved the etag", set_obj[pl_id], "and value as", set_obj[pl_id+"_val"], "under id", pl_id)
+              })
+              callback(length);
+            }
+            async_i++;
+          }, err => {
+            console.error(err);
+          }); //Close call to videos
         }, err => {
           console.error(err);
-        }); //Close call to videos
-      }, err => {
-        console.error(err);
-      }); //Close get to playlist Items
-    } //Close for loop
-  }, err => {
-    console.error(err);
-    // 403 shouldn't happen, since token is generated per page
-  }); //Close get to playlist total video count
+        }); //Close get to playlist Items
+      } //Close for loop
+    }, err => {
+      console.error(err);
+      // 403 shouldn't happen, since token is generated per page
+    }, pl_cache[pl_id]); //Close get to playlist total video count
+  })
 };
 /**
  * Run on script load

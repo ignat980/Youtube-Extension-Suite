@@ -52,6 +52,7 @@
     var x = new XMLHttpRequest();
     x.open("GET", url);
     if (etag){
+      console.log("Using etag in request:", etag);
       x.setRequestHeader("If-None-Match", etag)
     }
     x.responseType = 'json';
@@ -61,7 +62,7 @@
         errorCallback(x);
       } else if (x.status === 304) {
         console.log("No change.");
-        callback(x)
+        callback(304)
       } else if (!x.response) {
         errorCallback("No response.");
       } else if (x.response.error) {
