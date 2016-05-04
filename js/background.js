@@ -3,10 +3,10 @@ chrome.runtime.onMessage.addListener(
     console.log("Recieved a message from", sender.tab ?
                 "a content script: " + sender.tab.url :
                 "the extension");
-    console.log(request);
+    // console.log(request);
     if (request.name === 'getAuthToken') {
       chrome.identity.getAuthToken({'interactive': false}, token => {
-        console.log("Token set");
+        // console.log("Token set");
         sendResponse(token)
       })
       return true

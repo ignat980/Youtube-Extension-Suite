@@ -12,6 +12,7 @@
 
   "permissions": [
     "identity",
+    "storage",
     "*://*.youtube.com/watch*list*",
     "*://*.youtube.com/playlist*"
   ],
@@ -24,7 +25,14 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/watch*list*", "*://*.youtube.com/playlist*"],
-       "js": ["js/vendor/moment.js", "js/vendor/moment-duration-format.js", "js/main.js"],
+       "js": [
+         "js/vendor/moment.js",
+         "js/vendor/moment-duration-format.js",
+         "js/helpers.js",
+         "js/duration_helpers.js",
+         "js/dom_helpers.js",
+         "js/main.js"
+       ],
        "run_at": "document_start"
     }
   ],
