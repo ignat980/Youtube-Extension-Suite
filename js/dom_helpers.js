@@ -50,7 +50,7 @@
    */
   function setLengthInDOMWith(element, index) {
     var length_li = getLengthDetail();
-    console.log("Setting", element, "into details at Index", index);
+    // console.log("Setting", element, "into details at Index", index);
     if (index < length_li.childNodes.length) {
       length_li.replaceChild(element, length_li.childNodes[index]);
     } else {
@@ -65,7 +65,7 @@
   function removeLoader() {
     var loader = document.getElementById('pl-loader-gif');
     if (loader) {
-      console.log("Removing loader");
+      // console.log("Removing loader");
       loader.remove();
     };
   }
@@ -77,7 +77,7 @@
    */
   function renderLengthToDOM(length) {
     function DOMLoadedHandler(){
-      console.log("Adding length:", length);
+      // console.log("Adding length:", length);
       removeLoader();
       setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
       document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
@@ -85,7 +85,7 @@
     if (document.readyState === "interactive" || document.readyState === "complete") {
       DOMLoadedHandler();
     } else {
-      console.log("Don't need to add loader since length is processed");
+      // console.log("Don't need to add loader since length is processed");
       document.removeEventListener('DOMContentLoaded', addLoader);
       document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
     };

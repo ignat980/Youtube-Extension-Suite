@@ -6,7 +6,7 @@
    * @returns {Duration} - The sum of the ISO 8601 strings as a moment.Duration object
    */
   function sumLengthsIntoDuration(data) {
-    console.log("Summing together strings");
+    // console.log("Summing together strings");
     return data.reduce((previous, current) => {
       var duration = previous.contentDetails ? moment.duration(previous.contentDetails.duration) : previous;
       duration.add(moment.duration(current.contentDetails.duration));
@@ -22,7 +22,7 @@
    * @returns {string} - a formatted string from a Duration object using the moment-duration-format plugin
    */
   function formatDuration(duration, format_string) {
-    console.log("Formatting", duration);
+    // console.log("Formatting", duration);
     var length;
     if (format_string === "long") {
       format = [

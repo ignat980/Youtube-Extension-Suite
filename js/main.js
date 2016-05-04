@@ -9,7 +9,7 @@
  * @param {function(string)} callback - called when the length of a Youtube Playlist is parsed
  */
 function getPlaylistLength(pl_id, key, callback, oauth_token) {
-  console.log("Getting playlist length");
+  // console.log("Getting playlist length");
   // TODO: cache some kind of data to quickly return playlist length !important (Can't use etags - /playlistItems always returns a new etag)
   /**
   I figured out how to cache the data!!! :D
@@ -41,7 +41,7 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
 
   */
   chrome.storage.local.get([pl_id,(pl_id+"_val")], pl_cache => {
-    console.log("Returned cache:", pl_cache);
+    // console.log("Returned cache:", pl_cache);
 
     // Api url to get video id's from playlistItems
     var pl_items_api_url = "https://www.googleapis.com/youtube/v3/playlistItems"
@@ -61,33 +61,32 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
     asyncJsonGET(pl_api_url + pl_api_etag_param + "&id=" + pl_id + pl_api_key, res => {
       // Do all the calls to the entire playlist, paginated to 50 items.
       // page tokens are always the same for different playlists when requesting 50 playlist items at a time
-      console.log("Response from /playlists:", res);
+      // console.log("Response from /playlists:", res);
       if (res === 304) {
-        console.log("Using saved length in cache");
-        console.log(res);
-        console.log("Playlist etag:", pl_cache[pl_id]);
+        // console.log("Using saved length in cache");
+        // console.log("Playlist etag:", pl_cache[pl_id]);
         var duration = moment.duration(pl_cache[pl_id+"_val"]);
         callback(formatDuration(duration,
                  (document.location.pathname === "/playlist" ? "long" : "short")));
         return
       }
-      console.log("Playlist etag:", res.etag);
+      // console.log("Playlist etag:", res.etag);
       var total_results = res.items[0].contentDetails.itemCount;
       var pages = Math.ceil(total_results/50); //How many requests to make
-      console.log("There are", pages, "pages to request");
+      // console.log("There are", pages, "pages to request");
       if (document.readyState === "interactive" || document.readyState === "complete") {
         setLengthInDOMWith(document.createTextNode(0 + "/" + total_results), 1);
       };
       var async_i = 0; //Track the amount of async calls
       for (var i = 0; i < pages; i++) {
         asyncJsonGET(pl_items_api_url + pl_api_query + "&playlistId=" + pl_id + pl_api_params + pl_api_key + "&pageToken=" + pageTokens[i], pl_res => {
-          console.log("Next 50 Playlist Items:", pl_res);
+          // console.log("Next 50 Playlist Items:", pl_res);
           // Convert response into a list of video id's
           video_ids = pl_res.items.map(item => item.contentDetails.videoId);
           // Keep track of videos processed
           // Call to /videos
           asyncJsonGET(videos_api_url.format(video_ids.join(',')), videos => {
-            console.log("Video repsonse:", videos);
+            // console.log("Video repsonse:", videos);
             // Render videos processed so far
             total += video_ids.length;
             if (document.readyState === "interactive" || document.readyState === "complete") {
@@ -95,9 +94,9 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
             }
             durations = durations.concat(videos.items);
             // If this is the last page, sum all durations together and return to the callback
-            console.log("Page", async_i, "and total pages is", pages);
+            // console.log("Page", async_i, "and total pages is", pages);
             if (async_i === pages - 1) {
-              console.log("Finished Requesting on page", async_i);
+              // console.log("Finished Requesting on page", async_i);
               var duration = sumLengthsIntoDuration(durations)
               var length = formatDuration(duration,
                        document.location.pathname === "/playlist" ? "long" : "short");
@@ -105,7 +104,7 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
               set_obj[pl_id] = res.etag
               set_obj[pl_id+"_val"] = duration.toISOString()
               chrome.storage.local.set(set_obj,function(){
-                console.log("Saved the etag", set_obj[pl_id], "and value as", set_obj[pl_id+"_val"], "under id", pl_id)
+                // console.log("Saved the etag", set_obj[pl_id], "and value as", set_obj[pl_id+"_val"], "under id", pl_id)
               })
               callback(length);
             }
@@ -126,11 +125,11 @@ function getPlaylistLength(pl_id, key, callback, oauth_token) {
 /**
  * Run on script load
  */
-console.log('Script running');
+// console.log('Script running');
 var token;
 chrome.runtime.sendMessage({name: 'getAuthToken'}, function(res) {
   token = res;
-  console.log("Assigning token on init:", token);
+  // console.log("Assigning token on init:", token);
   //Read the private keys file, the key is used in the request to get playlist length data
   readJsonFile(keys_URL, json => {
     var keys = JSON.parse(json);
@@ -138,7 +137,7 @@ chrome.runtime.sendMessage({name: 'getAuthToken'}, function(res) {
     var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
     var url = document.location.href;
     var list_id = url.match(list_regex)[1];
-    console.log("Playlist id:",list_id);
+    // console.log("Playlist id:",list_id);
     getPlaylistLength(list_id, keys["YTDataAPIKey"],
       renderLengthToDOM
     , token);
@@ -154,13 +153,13 @@ var observer = new MutationObserver(function(mutations) {
   mutations.forEach(mutation => {
     //If the playlist details node is loaded, add the loader gif
     if (mutation.target.className === 'pl-header-details' || mutation.target.className === 'playlist-details' || mutation.target.id === 'pl-detail-length') {
-      console.log(mutation);
+      // console.log(mutation);
       if (!mutation.target.contains(spinner)) {
         playlist_details_element = mutation.target
         length_li = createLengthDetail()
         length_li.appendChild(spinner)
         playlist_details_element.appendChild(length_li);
-        console.log("Added loader");
+        // console.log("Added loader");
         observer.disconnect()
       }
     }
@@ -174,7 +173,7 @@ var keys_URL = chrome.extension.getURL("keys.json");
 var tokens_URL = chrome.extension.getURL("pageTokens.json")
 //Parse page tokens, used to optimize getting requests
 readJsonFile(tokens_URL, json => {
-  console.log("Page Tokens read");
+  // console.log("Page Tokens read");
   pageTokens = JSON.parse(json)["pageTokens"];
 });
 

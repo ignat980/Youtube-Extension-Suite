@@ -140,7 +140,7 @@ function getPageTokens(pl_id, key, callback) {
 /**
  * Run on script load
  */
-console.log('Script running');
+// console.log('Script running');
 
 addFormatStringFunction() //Add .format() method to strings
 var keys_URL = chrome.extension.getURL("keys.json");
@@ -151,7 +151,7 @@ readJsonFile(keys_URL, json => {
   var list_regex = /(?:https?:\/\/)www\.youtube\.com\/(?:(?:playlist)|(?:watch))\?.*?(?:list=([A-z\d-]+)).*/;
   var url = document.location.href;
   var list_id = url.match(list_regex)[1];
-  console.log("Playlist id:",list_id);
+  // console.log("Playlist id:",list_id);
   getPageTokens(list_id, keys["YTDataAPIKey"]);
 });
 })(this);
