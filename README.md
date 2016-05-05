@@ -19,6 +19,8 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Easy Playlist Creation
 * Watch Playlist in reverse order
 * Copy a playlist to your account
+* Infinite playlists
+* Infinite Videos (Kinda hard, but I have an idea, but requires reverse-engineering)
 
 ###Installation:
 *\*This is for Google Chrome\**
