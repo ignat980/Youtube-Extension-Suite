@@ -1,4 +1,4 @@
-# Youtube Extension Suite v0.2.0
+# Youtube Extension Suite v0.2.1
 
 This is an extension for [YouTube](https://www.youtube.com). It is meant to be like the Reddit Extension Suite, like with cool options and stuff :D
 

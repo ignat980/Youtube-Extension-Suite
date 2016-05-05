@@ -3,10 +3,11 @@
   "manifest_version": 2,
   "name": "YouTube Extension Suite",
   "short_name": "YES!",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "key":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlPwkwURXnDqjSi8b0d4s39zuie4oCODQqG6/w2NyRN+kc+m+CeM3vFIGk0ZHcolX1GrhzILcPaMgqjm3iPHfxff0ldj+GKpzMivpV3JprXmN0cvi8wrbUAm4/WjtCExrArRsO1aPrR1JbQ0otsw2za7U+gE8uozEeD8phbQ7ZAWl1tbAhdM8rJZa7ZBn/GwTOpPF532dRMi99oMkZ4W+I6jzJHWYmEtOkCpF9CsfakCji6XpMk8SLzOrLK7JVRusMJcorSnUEXQbXiKHCRqep86A88Dx3kSVtOnRxz19MDG6PwMX9QSxGwrZ45NIHGf1Pue/X9Jd1g4G5wAuwRVaCQIDAQAB",
 
-  "description": "This extesnion will list the length of time it takes to watch an entire youtube playlist",
+
+  "description": "This extesnion lists the total play time of a youtube playlist",
   "icons": { "16": "images/Icon16.png",
            "48": "images/Icon48.png",
           "128": "images/Icon128.png" },
