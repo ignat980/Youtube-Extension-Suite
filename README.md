@@ -8,11 +8,11 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Displays Total Playlist Length for public and private playlists (And caches the time for optimization!)
 
 ###Working on:
+* Volume change with scroll
 
 ###Planned:
 * Collections
 * Auto functions (Quality, Speed, Annotations, Liking, etc.)
-* Volume change with scroll
 * Enlarge photo on mouseover
 * Hotkeys Customization (Play/Pause, Skip, Volume, Speed, etc.)
 * Easy Playlist Creation

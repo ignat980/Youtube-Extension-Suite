@@ -177,4 +177,26 @@ readJsonFile(tokens_URL, json => {
   pageTokens = JSON.parse(json)["pageTokens"];
 });
 
+onDOMLoad(function(){
+  //The youtube video player, it has neat funtions
+  var player = document.getElementById('movie_player')
+  // An event handler called on mouse scroll over the video element
+  function changeVolumeOnScroll(e) {
+    var change; //value to change by
+    var gap = 1; //How much to change volume
+    if ("wheel" == e.type) {
+      console.log(player);
+      change = player.getVolume();
+      //Negative or positive change based on whether you scroll up or down
+      change = 0 > e.wheelDelta ? change - gap : change + gap;
+    } else {
+      return;
+    }
+    // Set change within bounds
+    100 < change ? change = 100 : 1 > change && (change = 0);
+    player.setVolume(change);
+    console.log("Volume changed to", change);
+  }
+  player.addEventListener('wheel', changeVolumeOnScroll);
+});
 })(this);

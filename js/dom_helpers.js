@@ -70,26 +70,42 @@
     };
   }
 
+
   /**
-   * Renders a playlist length to the DOM
+   * Call a function when at least the Dom is loaded
    *
-   * @param {string} length - A readable length of the playlist
+   * @param: {function} callback - the function to be called when the dom is loaded
+   * @param: {function} before - optional funciton to be called if the dom is not yet loaded
    */
-  function renderLengthToDOM(length) {
-    function DOMLoadedHandler(){
-      // console.log("Adding length:", length);
-      removeLoader();
-      setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
+  function onDOMLoad(callback, before) {
+    function DOMLoadedHandler() {
+      callback()
       document.removeEventListener('DOMContentLoaded', DOMLoadedHandler);
     };
     if (document.readyState === "interactive" || document.readyState === "complete") {
       DOMLoadedHandler();
     } else {
-      // console.log("Don't need to add loader since length is processed");
-      document.removeEventListener('DOMContentLoaded', addLoader);
+      if (before) {
+        before();
+      }
       document.addEventListener('DOMContentLoaded', DOMLoadedHandler);
     };
   };
+
+  /**
+   * Renders a playlist length to the DOM
+   *
+   * @param: {string} length - A readable length of the playlist
+   */
+  function renderLengthToDOM(length) {
+    onDOMLoad(function() {
+      removeLoader();
+      setLengthInDOMWith(document.createTextNode("Total time: " + length), 0);
+    }, function () {
+      document.removeEventListener('DOMContentLoaded', addLoader);
+    });
+  };
+
 
   root.getLengthDetail    = getLengthDetail
   root.createLengthDetail = createLengthDetail
@@ -97,4 +113,5 @@
   root.setLengthInDOMWith = setLengthInDOMWith
   root.removeLoader       = removeLoader
   root.renderLengthToDOM  = renderLengthToDOM
+  root.onDOMLoad = onDOMLoad
 })(this);
