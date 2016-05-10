@@ -5,10 +5,9 @@ This is an extension for [YouTube](https://www.youtube.com). It is meant to be l
 Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-for-youtube/abjcfabbhafbcdfjoecdgepllmpfceif) may stop working, I wanted to start this project.
 
 ###Current features:
-* Displays Total Playlist Length for public and private playlists
+* Displays Total Playlist Length for public and private playlists (And caches the time for optimization!)
 
 ###Working on:
-* Caching playlist requests
 
 ###Planned:
 * Collections
