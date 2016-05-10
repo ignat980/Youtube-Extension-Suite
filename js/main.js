@@ -177,7 +177,59 @@ readJsonFile(tokens_URL, json => {
   pageTokens = JSON.parse(json)["pageTokens"];
 });
 
-onDOMLoad(function(){
+
+onDOMLoad(function() {
+  // Source borrowed from Youtube Center
+  function injectScript(func, filename, noArgs) {
+    filename = filename || "main.js";
+    var script = document.createElement("script");
+    var parent = document.body || document.head || document.documentElement;
+    if (!parent) {
+      setTimeout(bind(null, injectScript, func, true), 0);
+      return;
+    }
+    script.setAttribute("type", "text/javascript");
+    if (typeof func === "string") {
+      func = "function(){" + func + "}";
+    }
+  	var fn = "(" + func + ")";
+  	if (noArgs) {
+  		fn += "()";
+  	} else {
+  		fn += "()";
+  	}
+    script.appendChild(document.createTextNode(fn + ";\n//# sourceURL=" + filename));
+    parent.appendChild(script);
+    parent.removeChild(script);
+  }
+  function getUW() {
+    var uw = null,
+        loc = null,
+        con = null,
+        yesuite = {},
+        yt = {};
+    uw = (function(){
+      var a;
+      try {
+        a = unsafeWindow === window ? false : unsafeWindow;
+      } catch (e) {
+      } finally {
+        return a || (function(){
+          try {
+            var e = document.createElement('p');
+            e.setAttribute('onclick', 'return window;');
+            return e.onclick();
+          } catch (e) {
+            return window;
+          }
+        }());
+      }
+    })();
+    console.log(uw);
+    console.log(Object.keys(uw));
+  }
+  injectScript(getUW)
+  console.log(Object.keys(window));
   //The youtube video player, it has neat funtions
   var player = document.getElementById('movie_player')
   // An event handler called on mouse scroll over the video element
@@ -186,6 +238,7 @@ onDOMLoad(function(){
     var gap = 1; //How much to change volume
     if ("wheel" == e.type) {
       console.log(player);
+      console.log(Object.keys(player));
       change = player.getVolume();
       //Negative or positive change based on whether you scroll up or down
       change = 0 > e.wheelDelta ? change - gap : change + gap;
