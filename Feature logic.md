@@ -4,8 +4,8 @@
 On pages with a playlist, add the detail of how long it would take to watch
 
 Before requests have finished,
-  make a loader
-  add loader to webpage.
+  make a loader image
+  add loader to webpage
 
 Send a request to see how many items there are in the playlist.
 Since you can only send requests for 50 items at a time,
