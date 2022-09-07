@@ -20,6 +20,7 @@ Since [Magic Actions](https://chrome.google.com/webstore/detail/magic-actions-fo
 * Watch Playlist in reverse order
 * Duplicate a playlist
 * Infinite playlists
+* Always have a "Play all uploads" button
 
 ###Installation:
 *\*This is for Google Chrome\**
